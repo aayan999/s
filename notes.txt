@@ -1,0 +1,705 @@
+SEPM DIAGRAM EXPLANATIONS AND VIVA GUIDE
+Practical Question Bank 2026-27 | Questions 1-20
+
+HOW TO USE THIS FILE
+- Find the question number. The numbers match the diagrams in SEPM.vpp.
+- Read the purpose, then follow the elements and flow while looking at the diagram.
+- Practise explaining the flow aloud. Use the short viva answer to begin, then explain the arrows.
+- These are explanations of the supplied diagrams, not a claim that this is the only valid design.
+- Questions 21-25 ask for other work, such as SRS, RMMM and estimation. They are outside this diagram guide.
+
+CHECK RESULT
+- All 20 required diagrams are present, and all 20 use the diagram type requested in the question bank.
+- The main functions and participants requested by the questions are covered.
+- Question 04 has one relationship multiplicity that should be corrected. See its correction below.
+- Question 10 checks the balance but does not show a separate insufficient-balance branch. See its recommended improvement below.
+- Question 11 shows Student but gives that participant no numbered messages. Its student interaction should be added. See the correction below.
+- Other diagrams contain normal classroom simplifications. Important assumptions are explained rather than presented as production-ready designs.
+- This recheck inspected the saved model and its relationships. It did not include a fresh visual rendering in Visual Paradigm, so it does not certify every label position or visible arrowhead. The .vpp has not been changed by this recheck.
+
+============================================================
+BASICS TO LEARN FIRST
+============================================================
+
+UML
+- UML means Unified Modeling Language. It provides standard diagrams for describing a software system.
+- Different diagrams answer different questions. A class diagram describes structure. An activity diagram describes work. A sequence diagram describes messages over time.
+
+Use case diagram
+- An actor is a role outside the software, such as Student or Admin. It can also be another system.
+- A use case is a service or goal, such as Pay Fees. It appears as an oval.
+- The system boundary is the rectangle that separates the software's services from its external actors.
+- A solid actor-use case line means that the actor participates in that service. It does not specify execution order.
+- An include relationship means that the base use case requires the included behaviour. Its dashed arrow points to the included use case.
+- An extend relationship adds behaviour under a condition. Its dashed arrow points from the additional use case to the base use case.
+- Login can be a required step or a precondition. It does not have to be connected to every oval in a high-level diagram.
+
+Class diagram
+- A class describes a kind of object, such as Book or Payment.
+- Attributes store its data. Operations describe what it can do.
+- A class box normally has a name, an attribute compartment and an operation compartment.
+- An association connects related classes. Its label describes the relationship.
+- Multiplicity tells how many objects may be connected. Read the number near one end for one object at the opposite end.
+- 1 means exactly one. 0..1 means optional, at most one. 0..* or * means any number, including zero. 1..* means one or more.
+- Generalization means inheritance. The hollow triangle points at the general parent class.
+- A plus sign usually means public visibility. A minus sign usually means private visibility.
+
+Activity diagram
+- An action is one step of work, such as Verify documents.
+- The filled circle starts the activity. The bull's-eye activity-final node ends the entire activity.
+- Arrows show control flow, meaning which step can happen next.
+- A decision diamond chooses a path. A guard, such as [payment successful], says when a path is taken.
+- A merge joins alternative paths. It does not wait for several parallel actions.
+- Swimlanes group actions by responsibility. They do not create separate processes by themselves.
+
+State machine diagram
+- A state describes the condition of one object during its life, such as Scheduled or Cancelled.
+- A transition moves the object to another state when an event occurs.
+- The initial node starts the lifecycle. A final node means that the lifecycle being modelled has ended.
+- State names describe conditions. Arrow labels describe events or conditions that cause changes.
+- A retry arrow means an object can revisit an earlier state.
+
+Sequence diagram
+- Each participant has a lifeline. The vertical direction represents time, read from top to bottom.
+- A message arrow shows one participant communicating with another.
+- A narrow activation rectangle shows a period of execution. It is not stored data.
+- A synchronous call normally waits for its operation to finish. A return message carries a result back, often drawn dashed.
+- An alt frame separates alternative scenarios. Only the branch whose guard is true is followed.
+- Do not read a payment-failure branch as occurring after the successful delivery. They are alternatives, even when message numbers continue across the drawing.
+- A self-message represents internal work by the same participant.
+
+Communication diagram
+- Objects and their connecting links are the main focus, rather than vertical time.
+- Numbered message arrows establish order. Follow 1, 2, 3 and so on.
+- A link means that the connected participants can communicate. An arrow's direction identifies the sender and receiver of a particular message.
+- Sequence and communication diagrams are both interaction diagrams. They can describe the same scenario using different layouts.
+
+============================================================
+01. ONLINE EXAMINATION MANAGEMENT SYSTEM
+Use Case Diagram
+============================================================
+
+PURPOSE AND TYPE
+- This diagram shows what the examination system offers and who uses each service.
+- A use case diagram fits because the question asks for functional requirements and user-system interactions, not database tables or time order.
+
+ACTORS
+- Student registers, attempts an online examination and views the result.
+- Teacher manages the question bank and generates the question paper.
+- Admin schedules examinations and generates results.
+
+USE CASES AND RELATIONSHIPS
+- Register creates a student's account. Registration is not made dependent on an existing login.
+- Login identifies an existing user before protected work.
+- Manage Question Bank maintains the questions available to the system.
+- Generate Question Paper uses that question bank to prepare a paper. Its include relationship indicates required question-bank behaviour in this simplified model.
+- Schedule Examination sets when an examination will happen.
+- Attempt Online Exam lets a student answer questions. It includes Login and Evaluate Answers Automatically in this model.
+- Evaluate Answers Automatically calculates marks for answers the system can assess automatically.
+- Generate Result uses evaluation to produce a result record.
+- View Result lets the student see the published result.
+- Actor associations show responsibility. Include arrows do not mean that all use cases run at the same time.
+
+EXAMPLE AND VIVA
+- A teacher prepares questions, an admin schedules the examination, a student logs in and submits answers, and the system evaluates them and produces a result.
+- Begin with this explanation. This use case diagram identifies Student, Teacher and Admin and connects them to the examination services they use.
+- If asked about automatic evaluation, explain that this assumes automatically markable questions. Descriptive answers may need a separate manual evaluation service.
+
+============================================================
+02. LIBRARY MANAGEMENT SYSTEM
+Class Diagram
+============================================================
+
+PURPOSE AND TYPE
+- This diagram describes the main library data objects and their relationships.
+- A class diagram fits because the question asks for major classes and their relationships.
+
+CLASSES AND MEMBERS
+- Person stores common id, name and email values.
+- Student adds rollNo and department. Student is a specialized Person.
+- Librarian adds employeeId. Librarian is also a specialized Person.
+- Book stores isbn, title, author and status. isAvailable() checks whether it can be issued.
+- BookIssue records issueId, issueDate, dueDate and returnDate. issueBook() starts a loan and returnBook() records its return.
+- Reservation stores reservationId, reservationDate and status. reserveBook() creates a reservation and cancelReservation() cancels it.
+- Fine stores fineId, amount and paid. calculateFine() works out the charge and payFine() records payment.
+
+RELATIONSHIPS
+- Student and Librarian inherit common Person details. In UML the inheritance triangles must point to Person.
+- One Student can have zero or many BookIssue records. Each BookIssue belongs to one Student.
+- One Book can appear in zero or many BookIssue records over time. Each issue record concerns one Book.
+- One Student can make zero or many Reservations. Each Reservation is made by one Student.
+- One Book can appear in zero or many Reservations. Each Reservation concerns one Book.
+- One BookIssue may incur zero or one Fine. Each Fine belongs to one BookIssue.
+- One Librarian manages zero or many BookIssue records. Each record is managed by one Librarian in this design.
+
+EXAMPLE AND VIVA
+- Issuing a book creates a BookIssue with a due date. Returning it sets returnDate. A late return can produce a Fine.
+- Begin with this explanation. BookIssue represents a borrowing event, so the system can retain the history of a book and its borrower.
+- A reservation is a request to borrow, while a BookIssue records an actual loan.
+- This is a small model. Multiple physical copies of the same title can be represented with a separate BookCopy class in a larger design.
+
+============================================================
+03. COLLEGE ERP SYSTEM
+Use Case Diagram
+============================================================
+
+PURPOSE AND TYPE
+- ERP means Enterprise Resource Planning. Here it combines several college functions in one system.
+- The diagram identifies the college roles and the functions available to each role.
+
+ACTORS AND SERVICES
+- Student uses Apply for Admission, View Attendance, Pay Fees and View Result.
+- Admission Officer uses Verify Admission to check an application.
+- Faculty uses Mark Attendance and Enter Marks.
+- Accountant uses Manage Fee Records to maintain fee information.
+- Exam Cell uses Conduct Examination and Enter Marks.
+- Admin uses Manage Faculty Details to maintain faculty records.
+- Login is a shared access-control service.
+
+RELATIONSHIPS
+- Solid lines connect each role to the relevant function. More than one role can participate in the same function, as Faculty and Exam Cell do with Enter Marks.
+- Apply for Admission, Mark Attendance, Pay Fees and View Result include Login in this model.
+- Those includes express protected access. They do not describe the order of the complete admission or examination process.
+- The system boundary encloses the ERP services. The people remain outside because they interact with the software rather than form part of it.
+
+EXAMPLE AND VIVA
+- A student applies, an admission officer verifies the application, the student pays fees, faculty records attendance and marks, and the student later views results.
+- Begin with this explanation. This use case diagram divides ERP functionality by college role, covering admission, attendance, examinations, fees and faculty management.
+- A person can hold more than one role. An actor represents the role used in a particular interaction, not necessarily one unique person.
+
+============================================================
+04. ONLINE SHOPPING MANAGEMENT SYSTEM
+Class Diagram
+============================================================
+
+PURPOSE AND TYPE
+- This diagram describes the objects used to register customers, select products, create orders, pay and deliver goods.
+
+CLASSES AND MEMBERS
+- Customer stores customerId, name, email and address. register() and login() support account access.
+- Product stores productId, name, price and stock. search() represents finding products in this simple design.
+- ShoppingCart stores cartId. addItem(), removeItem() and getTotal() manage a customer's current selections.
+- CartItem stores quantity. It connects a cart selection to a Product.
+- Order stores orderId, orderDate and status. placeOrder() creates an order and cancelOrder() cancels it.
+- Payment stores paymentId, amount, mode and status. makePayment() performs payment handling.
+- Delivery stores deliveryId, address, status and expectedDate. updateStatus() changes the delivery progress.
+
+RELATIONSHIPS
+- One Customer owns one ShoppingCart in this model.
+- One ShoppingCart contains zero or many CartItems. Each CartItem belongs to one cart.
+- Many CartItems may refer to the same Product. Each CartItem refers to one Product.
+- One Customer places zero or many Orders. Each Order belongs to one Customer.
+- Each Order has one Payment and one Delivery in this simplified design.
+- An Order includes one or more Products.
+
+CORRECTION NEEDED
+- The saved Order-Product relationship has 1 next to Order and 1..* next to Product.
+- That wrongly restricts each catalog Product to exactly one Order. The same product should be purchasable in many orders.
+- Minimal fix is to change the multiplicity next to Order to 0..*. Keep 1..* next to Product.
+- A fuller design uses OrderItem between Order and Product, with quantity and priceAtPurchase. This also preserves the price paid when the catalog price changes.
+- The .vpp has not been edited during this recheck. Do not explain the incorrect 1 as a general e-commerce rule.
+
+EXAMPLE AND VIVA
+- A customer adds two units of a product to a CartItem, places an Order, makes a Payment and receives the Delivery.
+- Begin with this explanation. The class diagram separates temporary cart selections from a placed order and connects the order to payment and delivery.
+- The one-payment and one-delivery rules are classroom assumptions. Retries, partial payments and split shipments need a larger model.
+
+============================================================
+05. ATM TRANSACTION SYSTEM
+Activity Diagram
+============================================================
+
+PURPOSE AND TYPE
+- This diagram follows an ATM session, including cash withdrawal and balance viewing.
+- An activity diagram fits because the question asks for a workflow with decisions and alternative paths.
+
+FLOW AND ELEMENTS
+- The initial node leads to Insert card, Read card details and Enter PIN.
+- The PIN decision sends a valid PIN to Display menu. An invalid PIN leads to Display invalid PIN message, then Eject card.
+- The menu decision lets the user view the balance or enter a withdrawal amount.
+- Display balance returns to Display menu. It does not force a withdrawal.
+- Enter withdrawal amount leads to the funds decision.
+- Sufficient funds lead to Dispense cash, Update account balance and Print receipt.
+- Insufficient funds lead to Display insufficient funds message instead of cash dispensing.
+- The successful withdrawal and insufficient-funds alternatives merge before Eject card.
+- Eject card leads to the activity-final node.
+- Each guard identifies the condition for taking an outgoing decision path. The merge joins alternatives, not parallel work.
+
+EXAMPLE AND VIVA
+- A user enters a valid PIN, selects withdrawal and enters an affordable amount. The ATM dispenses cash, updates the balance, prints a receipt and ejects the card.
+- Begin with this explanation. This activity diagram shows the order of ATM actions and uses decisions for PIN validity, menu choice and sufficient funds.
+- The model ends an invalid-PIN attempt by ejecting the card. Real ATMs may allow a limited number of retries or retain the card, but that policy is not modelled here.
+
+============================================================
+06. RAILWAY RESERVATION SYSTEM
+Activity Diagram
+============================================================
+
+PURPOSE AND TYPE
+- This diagram follows a railway booking from searching trains to a confirmed ticket.
+- It explicitly includes the two alternatives requested in the question, unavailable seats and failed payment.
+
+MAIN FLOW
+- Login starts the session.
+- Enter source, destination and date supplies the search details.
+- Search trains finds matching services. Select train and class identifies the desired journey.
+- Check seat availability leads to a decision.
+- If seats are available, Enter passenger details and Proceed to payment follow.
+- The payment decision chooses success or failure.
+- On success, Confirm ticket is followed by Generate PNR and e-ticket and Send confirmation to passenger.
+- PNR means Passenger Name Record. Here it identifies the reservation record.
+
+ALTERNATIVES AND RELATIONSHIPS
+- If seats are unavailable, Display seats not available is followed by Offer waiting list or other trains. This attempt then ends.
+- If payment fails, Display payment failure message is followed by Release held seats. The failed attempt does not produce a confirmed ticket.
+- The alternatives join at a merge before the final node.
+- Release held seats assumes the chosen seats were held during payment. An explicit Hold seats action would make that assumption clearer, but it is not a separate action in the saved diagram.
+
+EXAMPLE AND VIVA
+- A passenger finds a train with seats, enters passenger details and pays successfully. The system confirms the ticket and generates the PNR.
+- Begin with this explanation. The diagram models the railway booking workflow and prevents seat-unavailable and payment-failed paths from reaching ticket confirmation.
+- A waiting-list booking has its own rules. This diagram only offers that option and does not model the complete waiting-list lifecycle.
+
+============================================================
+07. ONLINE BANKING APPLICATION
+State Machine Diagram
+============================================================
+
+PURPOSE AND TYPE
+- The object being modelled is one transaction, not the bank account itself.
+- A state machine fits because the question asks how that transaction changes state.
+
+STATES AND TRANSITIONS
+- The initial node enters Initiated when a transaction starts.
+- Initiated means the transaction has been created but is not authenticated yet.
+- Submitting details moves it to Authenticating.
+- Authenticating means the system is checking the user's identity or permission.
+- Authentication success moves it to Processing. Authentication failure moves it to Failed.
+- A user cancellation from Initiated or Authenticating moves it to Cancelled.
+- Processing means the system is carrying out the transaction.
+- Processing success moves it to Completed. Insufficient funds or another processing error moves it to Failed.
+- Completed means the transaction succeeded. Failed means it did not succeed. Cancelled means the user stopped it before processing in this model.
+- Completed, Failed and Cancelled lead to the final node for that transaction lifecycle.
+
+EXAMPLE AND VIVA
+- A transfer starts, the user authenticates, processing succeeds and the transaction becomes Completed.
+- Begin with this explanation. This state machine shows one banking transaction moving through initiation, authentication and processing to a successful, failed or cancelled outcome.
+- Cancellation is not shown during Processing. That avoids assuming that an already executing money transfer can simply be stopped.
+
+============================================================
+08. HOSPITAL MANAGEMENT SYSTEM
+State Machine Diagram
+============================================================
+
+PURPOSE AND TYPE
+- The object is a patient appointment. The diagram follows its lifecycle, not every hospital activity.
+
+STATES AND TRANSITIONS
+- The initial node enters Requested when the patient requests an appointment.
+- Requested means the request exists but no slot has been allotted.
+- Slot allotment moves it to Scheduled. A rejected or cancelled request moves it to Cancelled.
+- Scheduled means a slot has been assigned. Patient confirmation moves it to Confirmed.
+- Confirmed means the patient has accepted the appointment.
+- A change request from Scheduled or Confirmed moves it to Rescheduled.
+- Rescheduled represents the change process. Allotting a new slot returns it to Scheduled, allowing confirmation of the new slot.
+- Scheduled, Confirmed and Rescheduled can each move to Cancelled.
+- A confirmed appointment moves to Completed when the patient visits the doctor, as labelled in this classroom model.
+- Completed and Cancelled lead to the final node.
+
+EXAMPLE AND VIVA
+- A patient requests a visit, receives a slot and confirms it. If the slot changes, the appointment enters Rescheduled, receives a new slot and is confirmed again.
+- Begin with this explanation. This state machine explains the conditions of an appointment and the events that schedule, confirm, reschedule, complete or cancel it.
+- Scheduled and Confirmed are different because assigning a slot does not necessarily mean the patient has accepted it.
+- In a more detailed system, arrival and consultation completion would be separate events. The saved diagram combines the visit into the completion transition.
+
+============================================================
+09. ONLINE FOOD ORDERING SYSTEM
+Sequence Diagram
+============================================================
+
+PURPOSE AND PARTICIPANTS
+- This diagram shows messages during food ordering and delivery in time order.
+- Customer chooses and pays. Food Ordering System coordinates the request. Restaurant prepares food. Payment Service handles payment. Delivery Service delivers it.
+
+MESSAGE FLOW
+- browseRestaurants() asks the system for choices. The restaurant list and menu are returned.
+- placeOrder(items) sends the customer's selected items.
+- sendOrder(items) sends the order to Restaurant. orderAccepted returns the restaurant's acceptance.
+- show bill gives the customer the amount to pay.
+- makePayment(details) submits payment details. processPayment(amount) asks Payment Service to handle the charge.
+- In the payment-successful branch, paymentSuccess is followed by confirmOrder().
+- Restaurant performs prepareFood(), then reports orderReady.
+- assignDelivery(address) requests delivery. deliver food represents delivery to Customer.
+- deliveryCompleted reports completion and the system sends an order-delivered notification.
+- In the payment-failed branch, paymentFailed is followed by a payment-failed message to the customer. Food preparation and delivery do not occur on that branch.
+
+NOTATION AND VIVA
+- Read time from top to bottom. The alt frame separates successful and failed payment scenarios.
+- prepareFood() is internal restaurant work rather than a new external participant.
+- Begin with this explanation. This sequence diagram shows the ordering system coordinating the customer, restaurant, payment service and delivery service, with delivery continuing only after successful payment.
+- Physical delivery is represented as a business interaction here. A detailed software-only diagram could use delivery-status messages instead.
+
+============================================================
+10. ONLINE BANKING FUND TRANSFER SYSTEM
+Sequence Diagram
+============================================================
+
+PURPOSE AND PARTICIPANTS
+- This diagram shows the interaction order for transferring funds between accounts.
+- User initiates the transfer. Banking App receives requests. Authentication Service verifies access. Transaction Service coordinates account operations. Account DB stores account details and balances.
+- The beneficiary is the recipient account. Debit reduces the sender's balance and credit increases the recipient's balance.
+
+MESSAGE FLOW
+- login(userId, password) reaches Banking App, which calls authenticate(userId, password).
+- authenticated returns a successful authentication result.
+- transfer(beneficiary, amount) asks to move money.
+- validateBeneficiary(accountNo) and findAccount(accountNo) check the destination. account details are returned.
+- In the beneficiary-valid branch, checkBalance(senderAccount) obtains the sender's balance.
+- debit(sender, amount) and credit(beneficiary, amount) carry out the transfer.
+- success, transferSuccess(refNo) and the confirmation message report completion. refNo is a reference number for identifying the transaction.
+- In the beneficiary-invalid branch, invalidBeneficiary and an error message stop the normal transfer.
+
+IMPROVEMENT TO MAKE EXPLICIT
+- The saved diagram checks the balance but does not show a guard that prevents debit when funds are insufficient.
+- Add a nested alt frame after the balance response. The [balance >= amount] branch should contain debit, credit and success confirmation. The [balance < amount] branch should return an insufficient-funds error without debit or credit.
+- Authentication failure can also be shown in an outer alternative. The current interaction depicts successful login as its starting scenario.
+- Debit and credit must be one atomic transaction in a real implementation. Either both commit or neither does. Separate arrows alone do not guarantee this.
+- These improvements have not been applied to the .vpp during this recheck.
+
+VIVA
+- Begin with this explanation. The sequence authenticates the user, validates the beneficiary, checks the balance, updates both accounts and returns confirmation, with an alternative for an invalid beneficiary.
+- Do not claim that a visible insufficient-funds branch already exists. Explain the needed guard if asked about that failure.
+
+============================================================
+11. STUDENT ATTENDANCE MANAGEMENT SYSTEM
+Communication Diagram
+============================================================
+
+PURPOSE AND PARTICIPANTS
+- This diagram shows connected participants and numbered messages for recording attendance and generating a report.
+- Faculty records attendance and requests a class report. Student appears as a connected participant but is not used by the saved numbered messages. Attendance Management System coordinates operations. Database stores and retrieves records.
+
+NUMBERED MESSAGES
+- 1. login(id, password) begins faculty access.
+- 2. validateFaculty() checks the faculty identity against stored information.
+- 3. selectClassAndSubject() identifies the class and subject.
+- 4. getStudentList() retrieves the relevant students.
+- 5. markAttendance(present/absent) supplies each student's attendance status.
+- 6. saveAttendance() stores the attendance records.
+- 7. confirmation reports that recording was accepted.
+- 8. requestReport(class, period) is sent by Faculty to request attendance information for a class and period.
+- 9. fetchAttendanceRecords() obtains the underlying records.
+- 10. calculateAttendancePercentage() represents the calculation request shown between the system and database.
+- 11. displayReport() returns the report to Faculty.
+
+RELATIONSHIPS AND VIVA
+- Links connect Faculty to the system, Student to the system, and the system to Database. A direct Faculty-Student link is not needed for these software messages.
+- Follow the message numbers rather than reading the picture from left to right.
+- Begin with this explanation. This communication diagram shows faculty recording attendance and requesting reports through the attendance system and database. Student is shown, but its interaction is still missing from the numbered messages.
+- Attendance percentage is attended sessions divided by total counted sessions, multiplied by 100. For example, 18 out of 20 sessions is 90 percent.
+- In a larger design, calculation may belong to an attendance service instead of the database. This diagram keeps the participants requested by the question.
+
+CORRECTION NEEDED
+- The question asks for interactions involving Student as well as Faculty, the system and Database. A link with no message does not describe a student interaction.
+- Keep the existing faculty workflow. Add Student -> Attendance Management System requestOwnAttendance(), system -> Database fetchStudentAttendance(studentId), and system -> Student displayOwnAttendance(). Number these after the existing messages, for example 12, 13 and 14.
+- The student's identity should limit the request to their own records. Calculation can be part of the system's processing.
+- This correction has not been applied to the .vpp during this recheck.
+
+============================================================
+12. HOTEL RESERVATION SYSTEM
+Communication Diagram
+============================================================
+
+PURPOSE AND PARTICIPANTS
+- This diagram shows messages for a room reservation and its later cancellation.
+- Customer requests a room. Hotel Booking System coordinates it. Room Availability Service supplies room status. Payment Service handles the charge and refund request.
+
+NUMBERED MESSAGES
+- 1. searchRooms(dates, type) supplies the requested stay and room type.
+- 2. checkAvailability(dates, type) asks for suitable rooms.
+- 3. availableRooms returns availability. 4. showRooms presents the choices.
+- 5. reserveRoom(roomId, details) chooses a room and supplies booking details.
+- 6. processPayment(amount) requests payment. 7. paymentConfirmed returns success.
+- 8. blockRoom(roomId) reserves the room in availability records.
+- 9. bookingConfirmation(bookingId) gives the customer the booking reference.
+- 10. cancelReservation(bookingId) is a later cancellation request, not an automatic next step for every booking.
+- 11. releaseRoom(roomId) makes the cancelled room available again.
+- 12. refund(amount) requests the refund assumed by this scenario.
+- 13. cancellationConfirmation reports cancellation to Customer.
+
+RELATIONSHIPS AND VIVA
+- The three main links connect Customer, Room Availability Service and Payment Service to Hotel Booking System.
+- Reservation and cancellation use the same connected participants, but cancellation is a separate customer action.
+- Begin with this explanation. The communication diagram follows numbered reservation messages and then a cancellation that releases the room and requests a refund.
+- This classroom model assumes successful payment and a refundable cancellation. Real refund amounts depend on policy.
+- A production service should hold a room before charging and confirm availability atomically, so two customers cannot both pay for the last room.
+
+============================================================
+13. COLLEGE ADMISSION MANAGEMENT SYSTEM
+Activity Diagram
+============================================================
+
+PURPOSE AND LANES
+- This diagram shows the admission workflow with separate responsibilities.
+- Applicant performs application and payment actions. Admission Office performs verification, eligibility checking and confirmation.
+- Swimlanes make the responsible role visible without changing the order expressed by the arrows.
+
+FLOW AND DECISIONS
+- The applicant fills the online application form, uploads documents and submits the application.
+- The office verifies the documents.
+- Valid documents lead to Check eligibility. Invalid or incomplete documents lead to Ask applicant to resubmit documents, returning to Upload documents.
+- Eligible applicants proceed to Publish merit list / offer seat. Ineligible applications go to Reject application and end.
+- A seat offer leads to Pay admission fee.
+- Successful payment leads to Confirm admission and Generate admission receipt, then the final node.
+- Failed payment leads to Cancel seat offer and the final node in this model.
+- The resubmission loop corrects documents instead of restarting every action from the beginning.
+
+EXAMPLE AND VIVA
+- An applicant uploads an unreadable document. The office requests resubmission, the applicant uploads it again, and verification resumes. Eligibility and payment then determine confirmation.
+- Begin with this explanation. This activity diagram covers submission, verification, eligibility, fee payment and admission confirmation, with swimlanes showing applicant and office responsibilities.
+- Cancelling the offer immediately after a payment failure is a modelling policy, not a universal college rule. A real process may permit retries before a deadline.
+
+============================================================
+14. EMPLOYEE PAYROLL MANAGEMENT SYSTEM
+State Machine Diagram
+============================================================
+
+PURPOSE AND TYPE
+- The object is one employee's payroll transaction for a payroll cycle.
+- The diagram shows the condition of that payroll record as salary is calculated, approved and paid.
+
+STATES AND TRANSITIONS
+- The initial node enters Created when the payroll cycle starts.
+- Created means the payroll record exists but calculation is not complete.
+- calculate salary moves it to Calculated.
+- Calculated means salary components and deductions have been worked out.
+- manager approves moves it to Approved. A rejection returns it to Created for recalculation.
+- Approved means payment has been authorized.
+- initiate payment moves it to PaymentProcessing.
+- payment successful moves it to Paid. Paid leads to the final node.
+- payment failed moves it to PaymentFailed.
+- retry payment returns PaymentFailed to PaymentProcessing, rather than recalculating salary unnecessarily.
+
+EXAMPLE AND VIVA
+- Payroll is calculated and approved. A bank payment fails temporarily, so the record becomes PaymentFailed. A successful retry makes it Paid.
+- Begin with this explanation. The state machine separates salary calculation and approval from payment execution and permits a failed payment to be retried.
+- Approved does not mean Paid. Approval permits payment, while Paid records successful execution.
+- PaymentFailed is not drawn as a final state because this model permits recovery.
+
+============================================================
+15. ONLINE TICKET BOOKING SYSTEM
+Sequence Diagram
+============================================================
+
+PURPOSE AND PARTICIPANTS
+- This diagram shows the time order of searching, holding seats, paying and generating a ticket.
+- Customer requests the booking. Ticket Booking System coordinates it. Seat Availability Module handles seat status. Payment Gateway processes the payment. Ticket Generation Module creates the ticket.
+
+MESSAGE FLOW
+- searchEvent(details) asks for a suitable event or service.
+- checkAvailability(event, date) obtains available seats, which are shown to Customer.
+- selectSeats(seats) chooses seats.
+- holdSeats(seats) temporarily reserves them. seatsHeld confirms the hold.
+- makePayment(details) and processPayment(amount) initiate payment.
+- In the payment-successful branch, paymentSuccess is followed by confirmSeats(seats).
+- generateTicket(booking) asks Ticket Generation Module to create the ticket. The ticket and confirmation reach Customer.
+- In the payment-failed branch, paymentFailed is followed by releaseSeats(seats) and a payment-failed message.
+
+RELATIONSHIPS AND VIVA
+- The alt frame prevents the successful-ticket path and failed-payment path from being read as one continuous booking.
+- Holding a seat is temporary. Confirming it makes it part of the completed booking.
+- Releasing seats after failure allows someone else to book them.
+- Begin with this explanation. This sequence diagram reserves seats temporarily, confirms them after successful payment and generates a ticket, while failed payment releases the hold.
+- A real implementation also needs an expiry for abandoned seat holds and a response if ticket generation fails after payment.
+
+============================================================
+16. VEHICLE RENTAL MANAGEMENT SYSTEM
+Class Diagram
+============================================================
+
+PURPOSE AND TYPE
+- This diagram identifies the six classes named in the question and their multiplicities.
+
+CLASSES AND MEMBERS
+- Customer stores customerId, name, phone and licenseNo. register() creates the customer record.
+- Vehicle stores vehicleId, model, type, ratePerDay and available. checkAvailability() checks whether it can be rented.
+- Booking stores bookingId, startDate, endDate and status. createBooking() and cancelBooking() manage reservations.
+- Payment stores paymentId, amount, mode and date. makePayment() handles payment.
+- RentalAgreement stores agreementId, terms, deposit and issueDate. generateAgreement() creates the agreement.
+- Admin stores adminId and name. addVehicle(), removeVehicle() and manageBookings() support administration.
+
+RELATIONSHIPS
+- One Customer makes zero or many Bookings. Each Booking belongs to one Customer.
+- One Vehicle is reserved in zero or many Bookings over time. Each Booking is for one Vehicle.
+- Each Booking is paid through one Payment in this model.
+- Each Booking is governed by one RentalAgreement in this model.
+- One Admin manages zero or many Vehicles. Each Vehicle has one managing Admin.
+- One Admin approves zero or many Bookings. Each Booking has one approving Admin in this design.
+
+EXAMPLE AND VIVA
+- A customer books a vehicle for three days. The booking connects that customer and vehicle with a payment and rental agreement, while an admin manages the vehicle and approves the booking.
+- Begin with this explanation. Booking connects the renter, vehicle, payment and agreement, while Admin manages vehicles and booking approval.
+- A vehicle's many bookings are across time, not permission for overlapping rentals. A no-overlap rule must be enforced separately.
+- The one-payment and one-agreement multiplicities describe the simplified completed-booking view. Draft bookings, deposits and later balance payments need optional or multiple records in a fuller design.
+
+============================================================
+17. PHARMACY MANAGEMENT SYSTEM
+Use Case Diagram
+============================================================
+
+PURPOSE AND ACTORS
+- This diagram shows the pharmacy services and the external roles that participate in them.
+- Pharmacist handles inventory, prescription verification, billing and sales.
+- Customer participates in Process Sale.
+- Supplier participates in Receive Stock as the external source of stock.
+- Admin manages supplier details, places purchase orders and generates sales reports.
+
+USE CASES AND RELATIONSHIPS
+- Manage Medicine Inventory maintains medicine and stock information. It includes Login in this model.
+- Verify Prescription checks whether a prescription meets the requirements for a medicine sale.
+- Generate Bill prepares the sale amount and bill.
+- Process Sale records the sale. It includes Generate Bill and required inventory handling, represented here by Manage Medicine Inventory.
+- Verify Prescription is the conditional extra behaviour for prescription-required sales. Its extend arrow should point from Verify Prescription to Process Sale.
+- Manage Supplier Details maintains supplier records.
+- Place Purchase Order obtains more medicine stock. It includes supplier-detail handling in this model.
+- Receive Stock records stock received from a supplier. It includes inventory handling to update stock.
+- Generate Sales Report summarizes sales for Admin.
+
+EXAMPLE AND VIVA
+- A customer buys a prescription medicine. The pharmacist verifies the prescription, processes the sale, generates the bill and updates stock.
+- Begin with this explanation. The use case diagram groups pharmacy work into stock control, prescription checking, billing, purchasing and reporting and shows the roles involved.
+- An extend relationship means the extra behaviour is conditional. For a medicine that legally requires a prescription, verification is mandatory under that condition, not a check the pharmacist may simply skip.
+- In a refined model, broad inventory management can be split into smaller reusable use cases such as Update Stock.
+
+============================================================
+18. COURIER TRACKING MANAGEMENT SYSTEM
+State Machine Diagram
+============================================================
+
+PURPOSE AND TYPE
+- The object is one courier parcel. The diagram records how its tracking status changes.
+
+STATES AND TRANSITIONS
+- The initial node enters Booked when shipment booking is created.
+- Booked means the shipment is registered but pickup has not happened.
+- pickup done moves it to PickedUp.
+- reaches hub moves it to Sorting, where the parcel is organized for routing.
+- sorted and dispatched moves it to Dispatched for transport.
+- reaches destination hub moves it to OutForDelivery in this simplified model.
+- OutForDelivery means a delivery attempt is underway.
+- delivery successful moves it to Delivered.
+- recipient unavailable moves it to DeliveryFailed.
+- retry delivery returns it to OutForDelivery.
+- max attempts reached moves it to Returned.
+- Delivered and Returned lead to the final node.
+
+EXAMPLE AND VIVA
+- A parcel is booked, picked up, sorted and dispatched. The recipient is unavailable on the first attempt. A retry succeeds, so the parcel becomes Delivered.
+- Begin with this explanation. This state machine follows the parcel from booking to delivery and includes retry and return paths when delivery is unsuccessful.
+- Returned is a simplified terminal status. A detailed courier system can separate Return Initiated, Returning and Returned to Sender.
+- The diagram does not show every intermediate hub. Additional transport cycles can be added without changing the basic purpose.
+
+============================================================
+19. ONLINE LEARNING MANAGEMENT SYSTEM
+Use Case Diagram
+============================================================
+
+PURPOSE AND ACTORS
+- LMS means Learning Management System. It supports course delivery and assessment.
+- Student uses learning services. Instructor prepares material and assessment. Admin maintains courses and users.
+
+STUDENT USE CASES
+- Browse Courses finds available courses.
+- Enrol in Course registers the student for a course.
+- Access Course Content opens learning material.
+- Submit Assignment sends completed work for assessment.
+- Take Quiz / Assessment records assessment responses.
+- View Grades displays published results.
+
+INSTRUCTOR AND ADMIN USE CASES
+- Upload Course Content adds learning material.
+- Create Assignment and Quiz defines the work students must complete.
+- Evaluate and Grade assesses submitted work and records marks.
+- Manage Courses and Users maintains course and account records for Admin.
+- Login authenticates access.
+
+RELATIONSHIPS AND VIVA
+- Enrol in Course, Access Course Content, Submit Assignment and Take Quiz / Assessment include Login in the saved model.
+- Actor associations show which role participates in each service.
+- Evaluate and Grade does not include Submit Assignment. Submission and evaluation are different actors' activities, and a student's earlier submission is an input or precondition for grading, not an action the instructor executes inside grading.
+- Begin with this explanation. This use case diagram separates student learning actions from instructor preparation and grading and from administrative maintenance.
+- A use case diagram does not show the complete teaching timeline. An activity or sequence diagram would show that order more directly.
+
+============================================================
+20. ONLINE BUS RESERVATION SYSTEM
+Sequence Diagram
+============================================================
+
+PURPOSE AND PARTICIPANTS
+- This diagram shows interaction order for bus search, seat selection, payment and ticket booking.
+- Passenger makes the booking. Reservation System coordinates it. Bus Operator supplies bus and seat information. Payment Gateway processes payment.
+
+MESSAGE FLOW
+- searchBuses(source, destination, date) supplies the journey.
+- getBusSchedules(route, date) asks Bus Operator for matching services.
+- buses and seat map are returned and shown to Passenger.
+- selectSeat(busId, seatNo) chooses a seat on a particular bus.
+- blockSeat(busId, seatNo) temporarily holds the seat. seatBlocked reports the hold.
+- enterDetails and pay supplies passenger and payment information.
+- processPayment(amount) requests payment processing.
+- In the payment-successful branch, paymentSuccess is followed by confirmSeat(busId, seatNo).
+- confirmed returns from the operator and the system issues an e-ticket to Passenger.
+- In the payment-failed branch, paymentFailed is followed by releaseSeat(busId, seatNo) and a failure message.
+
+RELATIONSHIPS AND VIVA
+- The alt frame separates successful payment from failed payment.
+- Bus Operator is external to Reservation System. It supplies availability and accepts seat-blocking and confirmation requests.
+- A temporary blocked seat is not yet a confirmed booking.
+- Begin with this explanation. This sequence diagram coordinates the passenger, bus operator and payment gateway, confirms a seat only after successful payment and releases the seat after failure.
+- Compared with Question 15, this diagram uses Bus Operator rather than separate seat-availability and ticket-generation participants because the question asks for bus-specific interactions.
+
+============================================================
+COMMON VIVA QUESTIONS
+============================================================
+
+Why use different UML diagrams for the same system?
+- Each diagram describes a different view. Use cases show services and roles, classes show structure, activities show workflow, states show a lifecycle, and interaction diagrams show messages.
+
+What is the difference between an actor and a class?
+- An actor is an external role that interacts with the system. A class describes a type of object in the model. A role called Customer can appear as an actor in one view and a Customer class can store customer data in another view.
+
+What is the difference between include and extend?
+- Include requires the included behaviour as part of a use case. Extend adds behaviour under a condition to a base use case that is otherwise meaningful.
+
+What is the difference between an activity and a state?
+- An activity action describes work being done. A state describes the condition of an object. Verify payment is an action. PaymentFailed is a state.
+
+What is the difference between sequence and communication diagrams?
+- Both show interactions. Sequence emphasizes time vertically. Communication emphasizes the connected participants and uses numbered messages for order.
+
+What is the difference between a decision and a merge?
+- A decision chooses between outgoing paths using guards. A merge brings alternative incoming paths together. A merge does not synchronize parallel flows.
+
+What does 1 to 0..* mean?
+- One object on the 1 side can be associated with zero or many objects on the 0..* side. Each object on the many side is associated with exactly one object on the 1 side.
+
+Does showing a balance check guarantee a safe money transfer?
+- No. The result must control whether debit happens. Debit and credit also need atomic execution and error handling in the implementation.
+
+Does a diagram need every possible real-world exception?
+- No. Its scope should match the question. However, explicit required alternatives must be included, and simplifying assumptions should be explained rather than treated as universal rules.
+
+============================================================
+REFERENCE AND SCOPE
+============================================================
+
+Primary study material
+- SEPML practical question bank 26-27, Questions 1-20.
+- The supplied final SEPM.vpp containing the 20 named diagrams.
+
+UML notation references
+- https://www.uml-diagrams.org/use-case-reference.html
+- https://www.uml-diagrams.org/association.html
+- https://www.uml-diagrams.org/multiplicity.html?context=class-diagrams
+
+This guide explains the actual model in simple terms. It flags the shopping multiplicity correction, missing student messages and banking improvement instead of silently changing the diagrams or calling every detail perfect.
