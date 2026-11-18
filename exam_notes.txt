@@ -1,0 +1,507 @@
+SEPM EXAM NOTES
+Simple revision notes for the practical question bank
+
+HOW TO STUDY
+- First learn what each diagram is used for.
+- Then open the matching diagram and practise explaining its flow.
+- For Questions 21-25, learn the steps and understand the example. Do not memorize example numbers as facts about the project.
+- These notes are a short concept guide. The separate notes.txt explains each of the 20 diagrams in detail.
+
+============================================================
+1. SOFTWARE ENGINEERING BASICS
+============================================================
+
+What is software engineering?
+- It is a planned way to build, test and maintain software.
+- We first understand the problem, then design a solution, write code, test it and improve it.
+
+What is a requirement?
+- A requirement says what the system must do or what condition it must meet.
+- Example. A student must be able to view an examination result.
+
+Functional requirement
+- A function the system provides.
+- Examples. Register a student, calculate marks and generate a result.
+
+Non-functional requirement
+- A measurable quality or restriction on the system.
+- Example. The result page should load within two seconds under a stated test load.
+- Other areas include security, reliability and usability.
+
+Verification and validation
+- Verification checks whether the work follows its specification. Reviewing a design is one example.
+- Validation checks whether the system meets the users' real needs. Asking users to try an admission workflow is one example.
+
+============================================================
+2. UML AND THE SIX DIAGRAM TYPES
+============================================================
+
+UML means Unified Modeling Language.
+- It is a standard way to describe software using diagrams.
+- A diagram is a model of selected details, not the complete software.
+
+Choose the diagram by the question
+- Who uses which function? Use case diagram.
+- What classes exist and how are they related? Class diagram.
+- What steps happen in a process? Activity diagram.
+- How does one object's condition change? State machine diagram.
+- Which participant sends which message over time? Sequence diagram.
+- Which connected participants exchange numbered messages? Communication diagram.
+
+USE CASE DIAGRAM
+
+Main idea
+- It shows the system's functions from the users' point of view.
+
+Symbols
+- Actor. An outside role, such as Student or Admin. Usually a stick figure.
+- Use case. A function or goal, such as Pay Fees. Shown as an oval.
+- System boundary. A rectangle containing the system's use cases.
+- Association. A line showing that an actor participates in a use case.
+
+Include
+- The base use case requires another behaviour.
+- Example. Process Sale includes Generate Bill.
+- The dashed include arrow points to the included use case, Generate Bill.
+
+Extend
+- Extra behaviour is inserted under a condition.
+- Example. Verify Prescription extends Process Sale when the medicine requires a prescription.
+- The dashed extend arrow points to the base use case, Process Sale.
+- Conditional does not mean unimportant. Prescription checking is required when that condition applies.
+
+Remember
+- A use case diagram does not show execution order.
+- An actor is a role, not necessarily one person. One person can act as both Faculty and Admin.
+
+CLASS DIAGRAM
+
+Main idea
+- It shows the structure of the system.
+
+Example class
+- Class name is Book.
+- Attributes are isbn, title and status. These store data.
+- Operation is isAvailable(). This describes behaviour.
+
+Relationships
+- Association means that objects are related. A Student borrows through a BookIssue record.
+- Generalization means inheritance. Student is a kind of Person.
+- The hollow inheritance triangle points to the parent, Person.
+- Aggregation is a weak whole-part relationship, shown with a hollow diamond at the whole.
+- Composition is strong ownership, shown with a filled diamond at the whole. A part belongs to at most one composite at a time and is normally deleted with it.
+- Dependency means one element uses or depends on another. It is usually a dashed arrow toward the depended-on element.
+
+Multiplicity
+- 1 means exactly one.
+- 0..1 means zero or one.
+- 0..* means zero or many.
+- 1..* means one or many.
+- Read the number at an end for one object at the opposite end.
+- Example. Customer 1 connects to Booking 0..*. One customer can have many bookings. Each booking has one customer.
+
+Common mistake
+- Do not confuse a class with one object. Book is a class. A particular library copy is an object.
+
+ACTIVITY DIAGRAM
+
+Main idea
+- It shows the steps of a workflow.
+
+Symbols
+- Filled circle starts the activity.
+- Rounded rectangle shows an action.
+- Arrow shows the next step.
+- Decision diamond chooses a path.
+- A guard such as [payment successful] states when a path is followed.
+- Merge diamond joins alternative paths.
+- Fork bar starts parallel flows. Join bar synchronizes parallel flows.
+- Bull's-eye activity-final node ends the whole activity.
+- Swimlanes show who is responsible for each action.
+
+Example
+- Submit application -> Verify documents -> Check eligibility -> Pay fee -> Confirm admission.
+- Invalid documents can return to Upload documents.
+- Failed payment must not follow the successful confirmation path.
+
+STATE MACHINE DIAGRAM
+
+Main idea
+- It shows the lifecycle of one object.
+
+Example appointment
+- Requested -> Scheduled -> Confirmed -> Completed.
+- A cancellation moves the appointment to Cancelled.
+- A change request can move it to Rescheduled.
+
+Symbols
+- State is the object's condition, such as Confirmed.
+- Transition is an arrow between states.
+- An event on the arrow explains what causes the change.
+- Initial and final nodes mark the start and end of the modelled lifecycle.
+
+Activity versus state
+- Verify payment is an action.
+- PaymentFailed is a state.
+- Always say which object's lifecycle you are modelling.
+
+SEQUENCE DIAGRAM
+
+Main idea
+- It shows messages in time order. Read from top to bottom.
+
+Symbols
+- Participant is a person, object or service involved in the interaction.
+- Lifeline is the vertical line below the participant.
+- Message arrow shows communication.
+- Activation rectangle shows a period of execution.
+- Return message carries a result back and is often dashed.
+- Self-message shows internal work by the same participant.
+- An alt frame shows alternatives. Follow only the branch whose condition is true.
+
+Example booking
+- Customer selects a seat.
+- System holds the seat and asks the gateway to process payment.
+- If payment succeeds, the system confirms the seat and issues a ticket.
+- If payment fails, the system releases the seat and reports failure.
+
+COMMUNICATION DIAGRAM
+
+Main idea
+- It shows connected participants and the messages they exchange.
+- Links show communication paths. Message arrows show direction.
+- Message numbers show the order. Follow 1, 2, 3 and so on.
+
+Example
+- 1. Faculty asks the attendance system to record attendance.
+- 2. The system saves records in the database.
+- 3. The system returns confirmation to Faculty.
+
+Difference from sequence
+- Sequence makes time order clear through vertical placement.
+- Communication makes participant connections clear and uses message numbers for order.
+
+============================================================
+3. WHICH QUESTIONS USE WHICH DIAGRAM?
+============================================================
+
+Use case
+- Q1 Online Examination.
+- Q3 College ERP.
+- Q17 Pharmacy.
+- Q19 Online Learning.
+
+Class
+- Q2 Library.
+- Q4 Online Shopping.
+- Q16 Vehicle Rental.
+
+Activity
+- Q5 ATM Transaction.
+- Q6 Railway Reservation.
+- Q13 College Admission.
+
+State machine
+- Q7 Banking Transaction.
+- Q8 Hospital Appointment.
+- Q14 Payroll Transaction.
+- Q18 Courier Parcel.
+
+Sequence
+- Q9 Food Ordering.
+- Q10 Banking Fund Transfer.
+- Q15 Ticket Booking.
+- Q20 Bus Reservation.
+
+Communication
+- Q11 Student Attendance.
+- Q12 Hotel Reservation.
+
+============================================================
+4. Q21 - SOFTWARE PROCESS MODELS
+Online Examination Management System
+============================================================
+
+What is a process model?
+- It describes how development work is organized.
+
+Common models
+- Waterfall completes major phases in order. It suits stable, well-understood requirements but handles late changes less easily.
+- Incremental delivers the system in usable parts. Feedback from one part can improve later parts.
+- Iterative improves a solution through repeated versions. Iterative improvement and incremental delivery can be used together.
+- Spiral organizes work around repeated risk analysis and development cycles. It suits projects where managing risk justifies the added effort.
+- Agile approaches use short development cycles, regular feedback and frequent adaptation. Agile is a family of approaches, not one fixed phase diagram.
+
+A defensible choice for this question
+- Choose Incremental development, with feedback after each delivery.
+- Reason. Examination functions can be developed in groups, and college users can review working features before the full system is ready.
+- This is a justified choice, not the only correct answer. State your assumptions about project size, risk and user availability.
+
+Possible increments
+- First deliver registration and login.
+- Next deliver question-bank management and examination scheduling.
+- Next deliver paper generation and online examination.
+- Finally deliver evaluation and result generation.
+
+Phases within an increment
+- Requirements produce an agreed feature list and acceptance criteria.
+- Design produces diagrams, data design and interface design.
+- Coding produces working software.
+- Testing produces test results and defect records.
+- Delivery produces a usable release and user feedback.
+
+Risks to mention
+- Login and access must be secure.
+- Answers must not be lost during an examination.
+- The system must handle the expected number of simultaneous students.
+- Test security, recovery and load before using it for a real examination.
+
+============================================================
+5. Q22 - SRS
+Hospital Management System
+============================================================
+
+What is SRS?
+- SRS means Software Requirements Specification.
+- It describes what the system must do, its interfaces and its constraints. It should be clear enough to guide design and testing.
+
+IEEE-style classroom structure
+- Introduction explains the purpose, scope, definitions and references.
+- Overall description explains users, product context, major functions, assumptions and constraints.
+- Specific requirements list functional requirements, non-functional requirements and external interfaces.
+- Follow the exact headings required by your teacher or lab manual. Different standards and templates organize these details differently.
+
+Hospital functions to cover
+- Patient registration creates a patient record.
+- Appointment scheduling books or changes a doctor appointment.
+- Doctor management maintains doctor details and availability.
+- Medical records store authorized clinical information.
+- Billing records charges and payments.
+- Pharmacy manages medicine stock and dispensing records.
+
+Good requirement example
+- FR-01. The system shall assign a unique patient ID when a valid registration is saved.
+- FR-02. The system shall prevent two confirmed appointments for the same doctor and time slot.
+- NFR-01. Only authorized clinical staff shall access a patient's clinical record.
+- Giving a requirement an ID makes it easier to trace to design and tests.
+
+External interfaces
+- User interfaces are screens and forms.
+- Software interfaces connect other software, such as a payment service.
+- Hardware interfaces describe required devices when relevant.
+- Communication interfaces describe how systems exchange information.
+
+Constraint versus assumption
+- A constraint is a limit the design must obey, such as a required technology or access policy.
+- An assumption is something believed true for planning, such as reliable network access. Validate important assumptions.
+
+Viva point
+- A good requirement is clear, consistent, feasible and testable.
+- Avoid vague words such as fast or user-friendly without explaining how they will be evaluated.
+
+============================================================
+6. Q23 - RMMM
+College ERP Development Project
+============================================================
+
+What is a risk?
+- A possible future event that could harm the project.
+- A risk is uncertain. An issue has already happened.
+
+RMMM means
+- Risk Mitigation reduces the chance or impact before the risk occurs.
+- Risk Monitoring watches warning signs.
+- Risk Management prepares and carries out the response if the risk occurs.
+
+For each risk, record
+- Description and category.
+- Probability and impact.
+- Risk exposure or priority.
+- Mitigation action.
+- Monitoring indicator.
+- Contingency action.
+- Owner responsible for watching and responding.
+
+Example risk
+- Risk is losing ERP data during migration.
+- Category is technical.
+- Mitigation is to test migration on a copy and create verified backups.
+- Monitoring is to compare record counts and check sample records during trial migration.
+- Contingency is to stop migration and restore the verified backup.
+- Owner is the migration lead.
+
+Risk exposure example
+- If probability is 0.20 and estimated loss is Rs. 50,000, expected monetary exposure is 0.20 x 50,000 = Rs. 10,000.
+- These are example assumptions, not measured ERP project values.
+- A qualitative probability-impact score can prioritize risks too. Do not label such a score as money.
+
+ERP categories
+- Technical. Integration or migration may fail.
+- Operational. Staff may struggle to adopt the new workflow.
+- Financial. Development may exceed the budget.
+- Security. An unauthorized person may access student or fee records.
+
+============================================================
+7. Q24 - SIZE, EFFORT AND COST ESTIMATION
+Online Food Delivery Application
+============================================================
+
+Keep the terms separate
+- Size means how much software is being built.
+- Effort means the total human work, such as person-months.
+- Duration means calendar time.
+- Cost means money required.
+
+LOC and Function Points
+- LOC means Lines of Code. KLOC means thousands of lines of code.
+- LOC depends on language and coding style. It can be hard to estimate before design.
+- Function Points estimate functional size using user-visible inputs, outputs, inquiries, data groups and external data references.
+- Function Points are useful early when requirements are known but code is not written.
+
+Food-delivery examples
+- Input. Submit an order.
+- Output. Produce an order receipt.
+- Inquiry. Look up order status.
+- Internal data group. Orders maintained by this application.
+- External data reference. A data group maintained by another application but referenced by this application.
+- Merely calling a payment API does not automatically establish an external interface file. Classify the actual data and functions using the chosen counting method.
+
+Estimation steps
+- Define the scope and list features.
+- Choose LOC or a stated Function Point method.
+- Estimate size using stated assumptions and counting rules.
+- Choose a productivity rate or an appropriate effort model.
+- Estimate effort, duration and cost. Explain the assumptions.
+
+Simple worked example
+- Assume estimated size is 100 Function Points.
+- Assume productivity is 10 Function Points per person-month.
+- Effort = size / productivity = 100 / 10 = 10 person-months.
+- Assume the labour rate is Rs. 40,000 per person-month.
+- Labour cost = 10 x 40,000 = Rs. 4,00,000.
+- Hosting, tools, testing services and contingency are additional if included in the budget.
+- These numbers are only an arithmetic example, not a completed Function Point count for the application.
+
+COCOMO basics
+- COCOMO is an effort-estimation model.
+- Basic COCOMO uses estimated KLOC with coefficients selected for the project category.
+- Intermediate COCOMO also uses cost drivers through an effort adjustment factor.
+- State the model version, category, coefficients and assumptions before calculating. Do not mix formulas from different versions.
+
+Important viva point
+- Ten person-months does not mean ten months with every team size.
+- Two people might suggest five months as rough arithmetic, but dependencies, skills and communication prevent perfect scaling.
+
+============================================================
+8. Q25 - PROJECT SCHEDULING AND GANTT CHART
+Student Management System
+============================================================
+
+WBS means Work Breakdown Structure
+- It divides the project into manageable pieces of work.
+- Break broad work into tasks with a clear output and owner.
+
+Example work
+- Requirements identify student, attendance and result needs.
+- Design prepares screens, data structures and diagrams.
+- Coding builds the features.
+- Testing checks them and records defects.
+- Deployment puts the release into use.
+- Maintenance fixes problems and supports later changes.
+
+Scheduling terms
+- Duration is how long an activity takes.
+- Dependency means one activity relies on another.
+- A milestone is an important checkpoint, usually shown with zero duration.
+- A deliverable is an output, such as an approved SRS or tested release.
+
+Small schedule example
+- Requirements take 2 working days.
+- Design takes 2 working days after requirements.
+- Coding takes 4 working days after design.
+- Testing takes 2 working days after coding.
+- Deployment takes 1 working day after testing.
+- With these tasks strictly sequential, total duration is 11 working days.
+- Maintenance continues after deployment. Do not imply that all maintenance ends on the release date.
+
+What is a Gantt chart?
+- Tasks appear down the side and time appears across the top.
+- A horizontal bar shows when a task starts, how long it lasts and when it ends.
+- Dependencies connect related tasks. Milestones identify important checkpoints.
+- Dates must respect weekends or holidays if the schedule uses working days.
+
+CPM and critical path
+- CPM means Critical Path Method.
+- The critical path is the longest-duration path through the dependency network. It determines the earliest possible project finish under the stated plan.
+- In a standard unconstrained network, critical tasks have zero total float. Delaying them delays the planned finish unless something else changes.
+- Parallel activities do not all add directly to total duration. Follow their dependencies.
+
+PERT
+- PERT uses optimistic, most likely and pessimistic duration estimates.
+- Expected duration = (optimistic + 4 x most likely + pessimistic) / 6.
+- Example. Estimates 2, 3 and 10 days give (2 + 12 + 10) / 6 = 4 days.
+
+Useful project metrics
+- Effort used versus effort planned.
+- Tasks completed versus tasks planned.
+- Defects found and fixed.
+- Estimated completion date versus the baseline date.
+- State how each metric is measured rather than reporting an unexplained percentage.
+
+============================================================
+9. QUICK VIVA PRACTICE
+============================================================
+
+How do I explain a diagram?
+- State its name and purpose.
+- Identify the actors, classes, states or participants.
+- Follow one normal scenario.
+- Explain the important relationships or decisions.
+- Explain a failure path and any simplifying assumption.
+
+Why is a use case diagram not a flowchart?
+- It shows services and roles, not the sequence of processing steps.
+
+Why separate Book from BookIssue?
+- Book stores book information. BookIssue stores one borrowing event and its dates.
+
+Why hold a seat before payment?
+- A temporary hold reduces the chance of another user booking it during payment. Failed or abandoned holds need release or expiry.
+
+Why is an insufficient-balance branch needed?
+- Checking the balance is not enough. Its result must prevent debit when funds are insufficient.
+
+Why should debit and credit be atomic?
+- Either both account changes must succeed or neither should be committed. Otherwise money can be deducted without reaching the recipient.
+
+What is the difference between a risk and an issue?
+- A risk may happen. An issue has happened and needs action now.
+
+What is the difference between effort and duration?
+- Effort measures human work. Duration measures elapsed project time.
+
+What should I avoid in an exam?
+- Wrong arrow direction or missing guards.
+- Multiplicities that contradict the real relationship.
+- Actors drawn without any meaningful interaction.
+- Calling a sample estimate a measured fact.
+- Giving unexplained cost or schedule numbers.
+
+FINAL REVISION ORDER
+- Learn the six diagram purposes and symbols.
+- Practise the actual diagram for each numbered question.
+- Learn SRS headings and one good requirement.
+- Learn one complete RMMM example.
+- Practise one estimation calculation and one small schedule.
+
+Scope
+- This file is a separate short concept guide for the supplied 25-question bank. It does not replace the full diagrams, an SRS document or a complete project plan.
+- Simplified examples are labelled as examples. Use your teacher's required format and counting conventions for formal answers.
+
+REFERENCE LINKS
+- UML notation. https://www.uml-diagrams.org/use-case-reference.html
+- Multiplicity. https://www.uml-diagrams.org/multiplicity.html?context=class-diagrams
+- Requirements. https://www.ibm.com/think/topics/what-is-requirements-management
+- Function Points. https://ifpug.org/ifpug-standards/fpa
+- PERT. https://www.projectmanagement.com/articles/728214/don-t-forget-standard-deviation-
+- COCOMO overview. https://www.geeksforgeeks.org/software-engineering/software-engineering-cocomo-model/
