@@ -11,11 +11,11 @@ HOW TO USE THIS FILE
 CHECK RESULT
 - All 20 required diagrams are present, and all 20 use the diagram type requested in the question bank.
 - The main functions and participants requested by the questions are covered.
-- Question 04 has one relationship multiplicity that should be corrected. See its correction below.
-- Question 10 checks the balance but does not show a separate insufficient-balance branch. See its recommended improvement below.
-- Question 11 shows Student but gives that participant no numbered messages. Its student interaction should be added. See the correction below.
+- Fixed in Question 04. The Order-Product association now allows the same Product in zero or many Orders.
+- Fixed in Question 10. A nested balance alternative now prevents debit and credit when the balance is insufficient.
+- Fixed in Question 11. Messages 12-14 now show Student requesting and receiving their own attendance report.
 - Other diagrams contain normal classroom simplifications. Important assumptions are explained rather than presented as production-ready designs.
-- This recheck inspected the saved model and its relationships. It did not include a fresh visual rendering in Visual Paradigm, so it does not certify every label position or visible arrowhead. The .vpp has not been changed by this recheck.
+- This guide was updated against the corrected saved model. The three fixes above were checked in the downloaded project. This text update does not claim a separate fresh visual inspection of every diagram.
 
 ============================================================
 BASICS TO LEARN FIRST
@@ -192,12 +192,11 @@ RELATIONSHIPS
 - Each Order has one Payment and one Delivery in this simplified design.
 - An Order includes one or more Products.
 
-CORRECTION NEEDED
-- The saved Order-Product relationship has 1 next to Order and 1..* next to Product.
-- That wrongly restricts each catalog Product to exactly one Order. The same product should be purchasable in many orders.
-- Minimal fix is to change the multiplicity next to Order to 0..*. Keep 1..* next to Product.
-- A fuller design uses OrderItem between Order and Product, with quantity and priceAtPurchase. This also preserves the price paid when the catalog price changes.
-- The .vpp has not been edited during this recheck. Do not explain the incorrect 1 as a general e-commerce rule.
+CORRECTION APPLIED
+- The saved Order-Product relationship now has 0..* next to Order and 1..* next to Product.
+- One Order includes one or more Products. The same Product can appear in zero or many Orders.
+- The previous restriction of one Order per Product has been removed.
+- A fuller design could use OrderItem between Order and Product, with quantity and priceAtPurchase. This also preserves the price paid when the catalog price changes.
 
 EXAMPLE AND VIVA
 - A customer adds two units of a product to a CartItem, places an Order, makes a Payment and receives the Delivery.
@@ -355,20 +354,21 @@ MESSAGE FLOW
 - transfer(beneficiary, amount) asks to move money.
 - validateBeneficiary(accountNo) and findAccount(accountNo) check the destination. account details are returned.
 - In the beneficiary-valid branch, checkBalance(senderAccount) obtains the sender's balance.
-- debit(sender, amount) and credit(beneficiary, amount) carry out the transfer.
+- A nested alt frame separates sufficient balance from insufficient balance.
+- With sufficient balance, debit(sender, amount) and credit(beneficiary, amount) carry out the transfer.
 - success, transferSuccess(refNo) and the confirmation message report completion. refNo is a reference number for identifying the transaction.
-- In the beneficiary-invalid branch, invalidBeneficiary and an error message stop the normal transfer.
+- With insufficient balance, message 15 transactionFailed(insufficient balance) reports the failure and message 16 returns an error message. No debit or credit occurs on this branch.
+- In the beneficiary-invalid branch, messages 17 invalidBeneficiary and 18 error message stop the normal transfer.
 
-IMPROVEMENT TO MAKE EXPLICIT
-- The saved diagram checks the balance but does not show a guard that prevents debit when funds are insufficient.
-- Add a nested alt frame after the balance response. The [balance >= amount] branch should contain debit, credit and success confirmation. The [balance < amount] branch should return an insufficient-funds error without debit or credit.
-- Authentication failure can also be shown in an outer alternative. The current interaction depicts successful login as its starting scenario.
+BALANCE CHECK FIXED
+- The saved diagram now has sufficient-balance and insufficient-balance branches after the balance response.
+- The success branch contains debit, credit and confirmation. The insufficient-balance branch reports an error without changing balances.
+- Authentication failure could also be shown in an outer alternative. The current interaction depicts successful login as its starting scenario.
 - Debit and credit must be one atomic transaction in a real implementation. Either both commit or neither does. Separate arrows alone do not guarantee this.
-- These improvements have not been applied to the .vpp during this recheck.
 
 VIVA
-- Begin with this explanation. The sequence authenticates the user, validates the beneficiary, checks the balance, updates both accounts and returns confirmation, with an alternative for an invalid beneficiary.
-- Do not claim that a visible insufficient-funds branch already exists. Explain the needed guard if asked about that failure.
+- Begin with this explanation. The sequence authenticates the user, validates the beneficiary, checks the balance and transfers funds only when the balance is sufficient. Invalid beneficiaries and insufficient balances produce errors instead of a successful transfer.
+- An alt frame selects one branch. It does not execute the insufficient-balance messages after a successful transfer.
 
 ============================================================
 11. STUDENT ATTENDANCE MANAGEMENT SYSTEM
@@ -377,7 +377,7 @@ Communication Diagram
 
 PURPOSE AND PARTICIPANTS
 - This diagram shows connected participants and numbered messages for recording attendance and generating a report.
-- Faculty records attendance and requests a class report. Student appears as a connected participant but is not used by the saved numbered messages. Attendance Management System coordinates operations. Database stores and retrieves records.
+- Faculty records attendance and requests a class report. Student requests their own attendance report. Attendance Management System coordinates operations. Database stores and retrieves records.
 
 NUMBERED MESSAGES
 - 1. login(id, password) begins faculty access.
@@ -391,19 +391,21 @@ NUMBERED MESSAGES
 - 9. fetchAttendanceRecords() obtains the underlying records.
 - 10. calculateAttendancePercentage() represents the calculation request shown between the system and database.
 - 11. displayReport() returns the report to Faculty.
+- 12. requestOwnAttendance() is sent by Student to Attendance Management System.
+- 13. fetchOwnAttendance() asks Database to retrieve the requesting student's attendance information.
+- 14. attendance report returns from the system to Student.
 
 RELATIONSHIPS AND VIVA
 - Links connect Faculty to the system, Student to the system, and the system to Database. A direct Faculty-Student link is not needed for these software messages.
 - Follow the message numbers rather than reading the picture from left to right.
-- Begin with this explanation. This communication diagram shows faculty recording attendance and requesting reports through the attendance system and database. Student is shown, but its interaction is still missing from the numbered messages.
+- Begin with this explanation. This communication diagram shows faculty recording attendance and requesting class reports, while Student can request their own attendance. Both workflows use the attendance system and database.
 - Attendance percentage is attended sessions divided by total counted sessions, multiplied by 100. For example, 18 out of 20 sessions is 90 percent.
 - In a larger design, calculation may belong to an attendance service instead of the database. This diagram keeps the participants requested by the question.
 
-CORRECTION NEEDED
-- The question asks for interactions involving Student as well as Faculty, the system and Database. A link with no message does not describe a student interaction.
-- Keep the existing faculty workflow. Add Student -> Attendance Management System requestOwnAttendance(), system -> Database fetchStudentAttendance(studentId), and system -> Student displayOwnAttendance(). Number these after the existing messages, for example 12, 13 and 14.
-- The student's identity should limit the request to their own records. Calculation can be part of the system's processing.
-- This correction has not been applied to the .vpp during this recheck.
+STUDENT INTERACTION FIXED
+- The original faculty workflow remains in messages 1-11.
+- Messages 12-14 now use Student, the system and Database for a separate own-attendance request.
+- The student's identity should limit the request to their own records. The new messages describe the interaction; access control must still be enforced in the implementation.
 
 ============================================================
 12. HOTEL RESERVATION SYSTEM
@@ -702,4 +704,4 @@ UML notation references
 - https://www.uml-diagrams.org/association.html
 - https://www.uml-diagrams.org/multiplicity.html?context=class-diagrams
 
-This guide explains the actual model in simple terms. It flags the shopping multiplicity correction, missing student messages and banking improvement instead of silently changing the diagrams or calling every detail perfect.
+This guide explains the corrected model in simple terms. The shopping multiplicity, student messages and balance alternative are now fixed. Other stated classroom assumptions remain assumptions, not universal rules for production software.
