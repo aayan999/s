@@ -1,0 +1,929 @@
+######################################################################
+#  ADBMS END-SEM  -  SET 1
+######################################################################
+
+ADBMS End-Sem Set 1: Answers for Q1 and
+Q2
+Q1. Partitioned STUDENT table (15 marks)
+
+Step 1: Create the table with range partitioning on Marks
+ CREATE DATABASE college;
+ USE college;
+
+ CREATE TABLE STUDENT (
+    Roll_No    INT NOT NULL,
+    Name       VARCHAR(30),
+    Department VARCHAR(20),
+    Marks      INT NOT NULL,
+    PRIMARY KEY (Roll_No, Marks)
+ )
+ PARTITION BY RANGE (Marks) (
+    PARTITION p0 VALUES LESS THAN (40),
+    PARTITION p1 VALUES LESS THAN (60),
+    PARTITION p2 VALUES LESS THAN (80),
+    PARTITION p3 VALUES LESS THAN MAXVALUE
+ );
+
+Note: in MySQL the partitioning column (Marks) must be part of the primary key, so the key is (Roll_No,
+Marks).
+
+Step 2: INSERT
+ INSERT INTO STUDENT VALUES
+ (101,'Amit','IT',35),
+ (102,'Sneha','CS',55),
+ (103,'Rahul','IT',72),
+ (104,'Priya','CS',88),
+ (105,'Kiran','IT',45),
+ (106,'Neha','CS',91);
+
+ SELECT * FROM STUDENT;
+Roll_No                     Name                        Department                 Marks
+101                         Amit                        IT                         35
+102                         Sneha                       CS                         55
+105                         Kiran                       IT                         45
+103                         Rahul                       IT                         72
+104                         Priya                       CS                         88
+106                         Neha                        CS                         91
+
+Rows come out grouped by partition (p0, p1, p2, p3), not in insertion order.
+
+Step 3: Display records from each partition separately
+   SELECT * FROM STUDENT PARTITION (p0);
+   SELECT * FROM STUDENT PARTITION (p1);
+   SELECT * FROM STUDENT PARTITION (p2);
+   SELECT * FROM STUDENT PARTITION (p3);
+Partition                               Marks range                             Records
+p0                                      below 40                                101 Amit (35)
+p1                                      40 to 59                                102 Sneha (55), 105 Kiran (45)
+p2                                      60 to 79                                103 Rahul (72)
+p3                                      80 and above                            104 Priya (88), 106 Neha (91)
+
+Step 4: UPDATE
+   UPDATE STUDENT SET Marks = 65 WHERE Roll_No = 101;
+
+   SELECT * FROM STUDENT PARTITION (p0);                -- Empty set
+   SELECT * FROM STUDENT PARTITION (p2);
+
+Amit's marks changed from 35 to 65, so MySQL moved the row from partition p0 to p2 automatically. p0 is now
+empty and p2 has 101 Amit (65) and 103 Rahul (72).
+
+Step 5: DELETE
+   DELETE FROM STUDENT WHERE Roll_No = 106;
+
+   SELECT * FROM STUDENT PARTITION (p3);
+
+Only 104 Priya (88) is left in p3.
+
+Final data
+   SELECT * FROM STUDENT;
+Roll_No                       Name                          Department                    Marks
+102                           Sneha                         CS                            55
+105                           Kiran                         IT                            45
+101                           Amit                          IT                            65
+103                           Rahul                         IT                            72
+104                           Priya                         CS                            88
+
+Working of partition-wise data storage
+-    Partitioning splits one large logical table into smaller physical parts called partitions. The table is still used
+    as one table in queries.
+-    On INSERT, the database applies the partition rule to the Marks value and stores the row in the matching
+    partition. For example, 72 is less than 80, so it goes to p2.
+-    On UPDATE, if the partitioning column changes, the row is moved to the correct partition.
+-    On SELECT with a condition on Marks, the optimizer reads only the needed partitions. This is called
+    partition pruning, and it makes queries faster.
+-    Each partition can be stored, backed up, or dropped separately (for example ALTER TABLE STUDENT DROP
+    PARTITION p0;). This makes large tables easy to manage.
+-    Types: RANGE (ranges of values, used above), LIST (fixed value lists), HASH (hash of a column, spreads rows
+    evenly). Hash example: PARTITION BY HASH(Roll_No) PARTITIONS 4;
+
+-    To see pruning: EXPLAIN SELECT * FROM STUDENT WHERE Marks = 72; shows only p2 in the partitions
+    column.
+
+Q2. Distributed transactions, COMMIT, ROLLBACK and recovery (15 marks)
+
+Distributed transaction
+A distributed transaction is a single transaction that updates data on two or more database servers (nodes)
+connected by a network. Even though the data is on different sites, the whole transaction must behave as one
+unit: either all sites save the changes, or none do. This follows the ACID properties (Atomicity, Consistency,
+Isolation, Durability).
+
+Bank money-transfer example
+Rahul has an account in Bank A at Site 1 (Pune) and Sneha has an account in Bank B at Site 2 (Mumbai). Rahul
+transfers Rs. 5,000 to Sneha.
+
+Step                                    Site                              Action
+1                                       Site 1 (Bank A)                   Debit Rs. 5,000 from Rahul
+2                                       Site 2 (Bank B)                   Credit Rs. 5,000 to Sneha
+3                                       Both sites                        If both steps succeed: COMMIT. If any
+                                                                         step fails: ROLLBACK
+
+   -- Site 1 (Bank A)
+   UPDATE accounts_A SET balance = balance - 5000 WHERE acc_no = 1001;
+
+   -- Site 2 (Bank B)
+   UPDATE accounts_B SET balance = balance + 5000 WHERE acc_no = 2002;
+
+   COMMIT;      -- both updates become permanent
+   -- if the credit fails:
+   ROLLBACK;    -- the debit is also undone
+
+Money must never be debited at one site without being credited at the other. This is why the transaction is
+treated as one atomic unit.
+
+Complete coding example (MySQL)
+Both banks are shown as two tables here so the script runs on one MySQL server. In a real distributed system
+each table sits on a different site.
+
+Step 1: Create tables and insert data
+
+   CREATE DATABASE bankdb;
+   USE bankdb;
+
+   CREATE TABLE accounts_A (acc_no INT PRIMARY KEY, name VARCHAR(30), balance INT);
+   CREATE TABLE accounts_B (acc_no INT PRIMARY KEY, name VARCHAR(30), balance INT);
+
+   INSERT INTO accounts_A VALUES (1001,'Rahul',20000);
+   INSERT INTO accounts_B VALUES (2002,'Sneha',10000);
+
+Step 2: Successful transfer of Rs. 5,000 with COMMIT
+
+   START TRANSACTION;
+   UPDATE accounts_A SET balance = balance - 5000 WHERE acc_no = 1001;
+   UPDATE accounts_B SET balance = balance + 5000 WHERE acc_no = 2002;
+   COMMIT;
+
+   SELECT * FROM accounts_A;            -- 1001 Rahul 15000
+   SELECT * FROM accounts_B;            -- 2002 Sneha 15000
+
+Step 3: Failed transfer with ROLLBACK (the credit step fails, so the debit is undone)
+
+   START TRANSACTION;
+   UPDATE accounts_A SET balance = balance - 5000 WHERE acc_no = 1001;
+   -- wrong account number, so no row is credited (0 rows affected)
+   UPDATE accounts_B SET balance = balance + 5000 WHERE acc_no = 9999;
+   ROLLBACK;     -- the debit is cancelled
+
+   SELECT * FROM accounts_A;            -- still 1001 Rahul 15000
+
+Step 4: Distributed transaction with two-phase commit (MySQL XA)
+
+   XA START 'transfer1';
+   UPDATE accounts_A SET balance = balance - 5000 WHERE acc_no = 1001;
+   XA END 'transfer1';
+   XA PREPARE 'transfer1';   -- Phase 1: site votes YES
+   XA COMMIT 'transfer1';    -- Phase 2: commit
+
+   -- if any site votes NO or fails, use instead of XA COMMIT:
+   -- XA ROLLBACK 'transfer1';
+
+   -- the same XA steps run on Site 2 for accounts_B (credit 5000)
+
+Output summary: after Step 2 Rahul has 15000 and Sneha has 15000 (total unchanged at 30000). After Step 3
+nothing changes because ROLLBACK restored the old values.
+
+Two-Phase Commit (2PC) protocol
+-    Phase 1, Prepare (voting): the coordinator asks every site, "Can you commit?" Each site writes to its log and
+    replies YES or NO.
+-    Phase 2, Commit or Abort: if all sites reply YES, the coordinator sends COMMIT to all. If any site replies NO
+    or does not reply, the coordinator sends ROLLBACK to all.
+
+Purpose of COMMIT and ROLLBACK
+COMMIT                                                   ROLLBACK
+Saves all changes of the transaction permanently.        Cancels all changes made since the transaction began.
+Makes the changes visible to other users.                Restores the database to its previous consistent state.
+Ends the transaction successfully.                       Used when an error or failure occurs.
+Example: transfer completed at both banks.               Example: credit to Sneha failed, so the debit from Rahul is
+                                                        cancelled.
+
+Why transaction recovery is required
+-    Failures can happen at any time: system crash, power cut, network failure between sites, disk failure, or a
+    site going down in the middle of a transaction.
+-    Without recovery, the database could be left half-updated (money debited but not credited), which breaks
+    Atomicity and Consistency.
+
+-   Recovery uses the transaction log. Committed transactions are redone (REDO) so Durability is kept, and
+   uncommitted transactions are undone (UNDO) so no partial changes remain.
+-   In a distributed system, recovery also makes sure all sites reach the same decision (all commit or all abort),
+   even if one site fails after voting.
+-   So recovery keeps the data correct, consistent and reliable after any failure.
+
+Conclusion
+Distributed transactions keep data consistent across sites using 2PC. COMMIT makes changes permanent,
+ROLLBACK cancels them, and recovery guarantees the database returns to a correct state after a failure.
+
+ADBMS End-Sem (Set 1) - Q2:
+Distributed Transaction
+Two-Phase Commit (2PC) using MySQL XA transactions: transfer Rs 5,000 from
+Ravi (Bank A) to Priya (Bank B), with COMMIT, ROLLBACK and XA
+RECOVER.
+
+Part 1: MySQL XA code
+-- ==========================================
+-- SETUP BANK A (Server A)
+-- ==========================================
+CREATE DATABASE IF NOT EXISTS bank_a;
+USE bank_a;
+CREATE TABLE accounts (
+   account_id INT PRIMARY KEY AUTO_INCREMENT,
+   account_holder VARCHAR(50) NOT NULL,
+   balance DECIMAL(10, 2) NOT NULL
+) ENGINE=InnoDB;
+INSERT INTO accounts (account_holder, balance)
+VALUES ('Ravi', 20000.00);
+-- ==========================================
+-- SETUP BANK B (Server B)
+-- ==========================================
+CREATE DATABASE IF NOT EXISTS bank_b;
+USE bank_b;
+CREATE TABLE accounts (
+   account_id INT PRIMARY KEY AUTO_INCREMENT,
+   account_holder VARCHAR(50) NOT NULL,
+   balance DECIMAL(10, 2) NOT NULL
+) ENGINE=InnoDB;
+INSERT INTO accounts (account_holder, balance)
+VALUES ('Priya', 10000.00);
+-- Check initial balances
+SELECT * FROM bank_a.accounts; -- Ravi: 20000.00
+SELECT * FROM bank_b.accounts; -- Priya: 10000.00
+-- ==========================================
+-- PHASE 1: PREPARE
+-- ==========================================
+
+-- Step 1: Debit Rs. 5,000 from Ravi on Bank A
+USE bank_a;
+XA START 'tx_101', 'bank_a';
+UPDATE accounts
+SET balance = balance - 5000
+WHERE account_holder = 'Ravi' AND balance >= 5000;
+XA END 'tx_101', 'bank_a';
+XA PREPARE 'tx_101', 'bank_a';
+-- Step 2: Credit Rs. 5,000 to Priya on Bank B
+USE bank_b;
+XA START 'tx_101', 'bank_b';
+UPDATE accounts
+SET balance = balance + 5000
+WHERE account_holder = 'Priya';
+XA END 'tx_101', 'bank_b';
+XA PREPARE 'tx_101', 'bank_b';
+-- ==========================================
+-- PHASE 2: COMMIT (Both servers succeeded)
+-- ==========================================
+XA COMMIT 'tx_101', 'bank_a';
+XA COMMIT 'tx_101', 'bank_b';
+-- Verify final balances
+SELECT * FROM bank_a.accounts;    -- Ravi: 15000.00
+SELECT * FROM bank_b.accounts;    -- Priya: 15000.00
+-- ==========================================
+-- PHASE 1: PREPARE
+-- ==========================================
+-- Step 1: Debit Rs. 3,000 from Ravi on Bank A
+USE bank_a;
+XA START 'tx_102', 'bank_a';
+UPDATE accounts
+SET balance = balance - 3000
+WHERE account_holder = 'Ravi' AND balance >= 3000;
+XA END 'tx_102', 'bank_a';
+XA PREPARE 'tx_102', 'bank_a';
+-- Step 2: Bank B starts but fails (example: error or crash before
+PREPARE)
+USE bank_b;
+XA START 'tx_102', 'bank_b';
+-- Suppose an error occurs here on Bank B, so we stop without preparing
+XA END 'tx_102', 'bank_b';
+-- ==========================================
+-- PHASE 2: ROLLBACK (Undo changes on both)
+-- ==========================================
+
+XA ROLLBACK 'tx_102', 'bank_b';
+XA ROLLBACK 'tx_102', 'bank_a';
+-- Verify balances remain unchanged
+SELECT * FROM bank_a.accounts; -- Ravi: still 15000.00
+SELECT * FROM bank_b.accounts; -- Priya: still 15000.00
+-- Simulate a transaction stuck in PREPARED state
+USE bank_a;
+XA START 'tx_103', 'bank_a';
+UPDATE accounts SET balance = balance - 1000 WHERE account_holder =
+'Ravi';
+XA END 'tx_103', 'bank_a';
+XA PREPARE 'tx_103', 'bank_a';
+-- View all pending prepared transactions waiting for recovery
+XA RECOVER;
+-- Resolve the pending transaction (use COMMIT or ROLLBACK)
+XA ROLLBACK 'tx_103', 'bank_a';
+-- Confirm no pending transactions remain
+XA RECOVER;
+
+Part 2: Diagram
+
+Note: this code was checked by hand, not run on a real MySQL server. Run it once in
+MySQL Workbench before the exam. In MySQL, XA works on InnoDB tables; run Bank
+A and Bank B as two separate databases (or two server connections).
+
+ADBMS End-Sem (Set 1): Answers for
+Q3, Q4, Q5, Q6
+Q3. MongoDB: insert and display JSON documents
+Aim: create a database and collections, insert structured and unstructured student
+documents, and display them.
+
+Step 1: Create / switch to the database
+use StudentDB
+
+Step 2: Structured collection (every document has the same fields)
+db.students.insertMany([
+{ roll_no: 1, name: "Aayan", department: "IT", marks: 85,
+  address: { city: "Pune", state: "Maharashtra", pincode: 411001 } },
+{ roll_no: 2, name: "Rahul", department: "CS", marks: 78,
+  address: { city: "Mumbai", state: "Maharashtra", pincode: 400001 } },
+{ roll_no: 3, name: "Sneha", department: "IT", marks: 92,
+  address: { city: "Nashik", state: "Maharashtra", pincode: 422001 } }
+])
+
+Step 3: Unstructured collection (documents have different fields)
+db.students_info.insertOne({ roll_no: 4, name: "Amit", department:
+"ENTC",
+  marks: 70, address: "Satara" })
+db.students_info.insertOne({ roll_no: 5, name: "Neha", department: "IT",
+  marks: 88, hobbies: ["music", "chess"], phone: "9876543210" })
+db.students_info.insertOne({ roll_no: 6, name: "Karan", marks: 65,
+  address: { city: "Nagpur" }, achievements: { sports: "State
+level" } })
+
+Step 4: Display all documents
+db.students.find()
+db.students.find().pretty()
+db.students_info.find().pretty()
+db.students.countDocuments()
+show collections
+
+Sample output (db.students.find()):
+{ _id: ObjectId("..."), roll_no: 1, name: 'Aayan', department: 'IT',
+marks: 85,
+ address: { city: 'Pune', state: 'Maharashtra', pincode: 411001 } }
+
+{ _id: ObjectId("..."), roll_no: 2, name: 'Rahul', department: 'CS',
+marks: 78, ... }
+{ _id: ObjectId("..."), roll_no: 3, name: 'Sneha', department: 'IT',
+marks: 92, ... }
+
+Explanation
+
+-   MongoDB stores data as JSON-like (BSON) documents inside collections. A
+   database is created automatically when the first document is inserted.
+-   Structured data: all documents follow the same fields. Unstructured data: documents
+   in one collection can have different fields (hobbies, phone, achievements). This is the
+   schema-less (flexible schema) property of MongoDB.
+-   MongoDB adds a unique _id (ObjectId) to each document automatically.
+-   find() returns all documents; pretty() prints them in readable form.
+
+Q4. MapReduce and Apache Cassandra
+A. MapReduce process
+
+MapReduce is a programming model to process large data in parallel. It has two main
+functions: Map and Reduce.
+
+-   Map: reads each record and emits (key, value) pairs.
+-   Shuffle / group: all values with the same key are grouped together.
+-   Reduce: takes each key with its list of values and combines them into one result (sum,
+   count).
+
+Example: count students in each department
+
+Input documents: (Aayan, IT), (Rahul, CS), (Sneha, IT), (Neha, IT), (Amit, CS)
+Map output     : (IT,1) (CS,1) (IT,1) (IT,1) (CS,1)
+After grouping : IT -> [1,1,1]     CS -> [1,1]
+Reduce output : IT -> 3            CS -> 2
+
+MongoDB code:
+db.students.mapReduce(
+ function () { emit(this.department, 1); },
+ function (key, values) { return Array.sum(values); },
+ { out: "dept_count" }
+)
+db.dept_count.find()
+
+{ _id: 'IT', value: 3 }
+{ _id: 'CS', value: 2 }
+
+Q5. Differentiate between Star Schema and Snowflake Schema
+with a suitable diagram or example. Write any four differences.
+Introduction
+A data warehouse stores data in a fact table (numeric measures such as amount and quantity)
+surrounded by dimension tables (descriptive data such as customer, product, date). The two common
+ways to arrange them are the Star Schema and the Snowflake Schema.
+
+Star Schema
+One central fact table is joined directly to dimension tables. Each dimension is denormalized: all its
+attributes sit in one table. The diagram looks like a star.
+
+Snowflake Schema
+A variation of the star schema in which the dimension tables are normalized into further sub-tables. The
+diagram branches out like a snowflake.
+
+Diagram (Sales example)
+STAR SCHEMA
+
+Dim_Customer                           Dim_Product
+(customer_id PK, name,                 (product_id PK, product_name,
+ city, state)                           category, brand)
+       \                                   /
+         \                               /
+           +-------- Fact_Sales ---------+
+           | sales_id PK                 |
+           | customer_id FK              |
+           | product_id FK               |
+           | date_id FK, amount          |
+           +-------------+---------------+
+                         |
+                    Dim_Date
+                    (date_id PK, order_date, month, year)
+
+SNOWFLAKE SCHEMA
+
+Dim_State -- Dim_City -- Dim_Customer        Dim_Category -- Dim_Product
+(state_id)   (city_id,   (customer_id,        (category_id)    (product_id,
+              state_id)   name, city_id)                        category_id)
+                               \                                 /
+                                 +-------- Fact_Sales --------+
+                                 | sales_id, customer_id,        |
+                                 | product_id, date_id, amount |
+                                 +-------------+---------------+
+                                                |
+                                   Dim_Date -- Dim_Month
+                                   (date_id,      (month_id, month,
+                                    month_id)      year)
+
+
+Four Differences
+No.    Star Schema                                        Snowflake Schema
+1      Dimension tables are denormalized (one table per   Dimension tables are normalized into sub-tables
+       dimension).                                        (Customer to City to State).
+2      Simple design, fewer tables, easy to understand.   Complex design, more tables, harder to
+                                                          understand.
+3      Fewer joins, so queries run faster.                More joins, so queries are slower.
+4      Data redundancy is high (city and state repeat).   Data redundancy is low, so storage is saved.
+5      Needs more storage space.                          Needs less storage space.
+6      Easy to maintain for reporting; harder to update   Easier to update a value once, but ETL and
+       repeated values.                                   maintenance are more complex.
+
+Any four of the above are enough for the answer.
+
+Example
+Star: Dim_Customer(customer_id, name, city, state). The city 'Pune' and state 'Maharashtra' repeat for
+every customer from Pune. A query for sales by state joins only Fact_Sales and Dim_Customer.
+Snowflake: Dim_Customer(customer_id, name, city_id) joins to Dim_City(city_id, city_name, state_id),
+which joins to Dim_State(state_id, state_name). 'Maharashtra' is stored once. A query for sales by state
+joins Fact_Sales, Dim_Customer, Dim_City and Dim_State.
+Fact table: Fact_Sales. Dimension tables: Dim_Customer, Dim_Product, Dim_Date (star); plus Dim_City,
+Dim_State, Dim_Category, Dim_Month (snowflake).
+
+Conclusion
+The star schema is simpler and faster for queries but stores repeated data. The snowflake schema saves
+space and keeps data consistent but needs more joins. The SQL code for both is in Sections A and B of
+this file.
+
+      Q5. Star Schema and Snowflake Schema in MySQL
+Fact table: Fact_Sales. Dimension tables: Dim_Customer, Dim_Product, Dim_Date (star); plus Dim_City,
+Dim_State, Dim_Category, Dim_Month (snowflake).
+
+A. Star Schema
+CREATE DATABASE star_schema;
+USE star_schema;
+
+-- Dimension tables (denormalized: everything in one table)
+CREATE TABLE Dim_Customer (
+    Customer_ID INT PRIMARY KEY,
+    Customer_Name VARCHAR(50),
+    City VARCHAR(50),
+    State VARCHAR(50)
+);
+
+CREATE TABLE Dim_Product (
+    Product_ID INT PRIMARY KEY,
+    Product_Name VARCHAR(50),
+    Category VARCHAR(50),
+    Brand VARCHAR(50)
+);
+
+CREATE TABLE Dim_Date (
+    Date_ID INT PRIMARY KEY,
+    Full_Date DATE,
+    Month VARCHAR(20),
+    Year INT
+);
+
+-- Fact table (center of the star)
+CREATE TABLE Fact_Sales (
+    Sale_ID INT PRIMARY KEY,
+    Customer_ID INT,
+    Product_ID INT,
+    Date_ID INT,
+    Quantity INT,
+    Amount DECIMAL(10,2),
+    FOREIGN KEY (Customer_ID) REFERENCES Dim_Customer(Customer_ID),
+    FOREIGN KEY (Product_ID) REFERENCES Dim_Product(Product_ID),
+    FOREIGN KEY (Date_ID) REFERENCES Dim_Date(Date_ID)
+);
+
+INSERT INTO Dim_Customer VALUES
+(1,'Rahul','Pune','Maharashtra'),
+(2,'Sneha','Mumbai','Maharashtra'),
+(3,'Amit','Ahmedabad','Gujarat');
+INSERT INTO Dim_Product VALUES
+(1,'Laptop','Electronics','Dell'),
+(2,'Phone','Electronics','Samsung'),
+(3,'Shirt','Clothing','Levis');
+INSERT INTO Dim_Date VALUES
+(1,'2026-01-15','January',2026),
+(2,'2026-02-10','February',2026);
+INSERT INTO Fact_Sales VALUES
+(1,1,1,1,1,55000.00),
+(2,2,2,1,2,40000.00),
+(3,3,3,2,3,3000.00),
+(4,1,2,2,1,20000.00);
+
+-- Query: total sales by state and category
+SELECT c.State, p.Category, SUM(f.Amount) AS Total_Sales
+FROM Fact_Sales f
+JOIN Dim_Customer c ON f.Customer_ID = c.Customer_ID
+
+JOIN Dim_Product p ON f.Product_ID = p.Product_ID
+GROUP BY c.State, p.Category;
+
+B. Snowflake Schema
+CREATE DATABASE snowflake_schema;
+USE snowflake_schema;
+
+-- Outer (normalized) tables
+CREATE TABLE Dim_State (
+   State_ID INT PRIMARY KEY,
+   State_Name VARCHAR(50)
+);
+
+CREATE TABLE Dim_City (
+   City_ID INT PRIMARY KEY,
+   City_Name VARCHAR(50),
+   State_ID INT,
+   FOREIGN KEY (State_ID) REFERENCES Dim_State(State_ID)
+);
+
+CREATE TABLE Dim_Category (
+   Category_ID INT PRIMARY KEY,
+   Category_Name VARCHAR(50)
+);
+
+CREATE TABLE Dim_Month (
+   Month_ID INT PRIMARY KEY,
+   Month_Name VARCHAR(20),
+   Year INT
+);
+
+-- Dimension tables linked to the outer tables
+CREATE TABLE Dim_Customer (
+   Customer_ID INT PRIMARY KEY,
+   Customer_Name VARCHAR(50),
+   City_ID INT,
+   FOREIGN KEY (City_ID) REFERENCES Dim_City(City_ID)
+);
+
+CREATE TABLE Dim_Product (
+   Product_ID INT PRIMARY KEY,
+   Product_Name VARCHAR(50),
+   Brand VARCHAR(50),
+   Category_ID INT,
+   FOREIGN KEY (Category_ID) REFERENCES Dim_Category(Category_ID)
+);
+
+CREATE TABLE Dim_Date (
+   Date_ID INT PRIMARY KEY,
+   Full_Date DATE,
+   Month_ID INT,
+   FOREIGN KEY (Month_ID) REFERENCES Dim_Month(Month_ID)
+);
+
+-- Fact table
+CREATE TABLE Fact_Sales (
+   Sale_ID INT PRIMARY KEY,
+   Customer_ID INT,
+   Product_ID INT,
+   Date_ID INT,
+   Quantity INT,
+   Amount DECIMAL(10,2),
+   FOREIGN KEY (Customer_ID) REFERENCES Dim_Customer(Customer_ID),
+   FOREIGN KEY (Product_ID) REFERENCES Dim_Product(Product_ID),
+   FOREIGN KEY (Date_ID) REFERENCES Dim_Date(Date_ID)
+);
+
+INSERT INTO Dim_State VALUES (1,'Maharashtra'),(2,'Gujarat');
+INSERT INTO Dim_City VALUES (1,'Pune',1),(2,'Mumbai',1),(3,'Ahmedabad',2);
+INSERT INTO Dim_Category VALUES (1,'Electronics'),(2,'Clothing');
+INSERT INTO Dim_Month VALUES (1,'January',2026),(2,'February',2026);
+INSERT INTO Dim_Customer VALUES (1,'Rahul',1),(2,'Sneha',2),(3,'Amit',3);
+INSERT INTO Dim_Product VALUES (1,'Laptop','Dell',1),(2,'Phone','Samsung',1),(3,'Shirt','Levis',2);
+INSERT INTO Dim_Date VALUES (1,'2026-01-15',1),(2,'2026-02-10',2);
+INSERT INTO Fact_Sales VALUES
+(1,1,1,1,1,55000.00),
+(2,2,2,1,2,40000.00),
+(3,3,3,2,3,3000.00),
+(4,1,2,2,1,20000.00);
+
+-- Query: total sales by state and category (more joins than star)
+SELECT s.State_Name, cat.Category_Name, SUM(f.Amount) AS Total_Sales
+FROM Fact_Sales f
+JOIN Dim_Customer c ON f.Customer_ID = c.Customer_ID
+JOIN Dim_City ci ON c.City_ID = ci.City_ID
+JOIN Dim_State s ON ci.State_ID = s.State_ID
+JOIN Dim_Product p ON f.Product_ID = p.Product_ID
+JOIN Dim_Category cat ON p.Category_ID = cat.Category_ID
+GROUP BY s.State_Name, cat.Category_Name;
+
+C. Schema Diagram (Star and Snowflake)
+
+Left: Star Schema (Fact_Sales with 3 denormalized dimensions).
+Right: Snowflake Schema (dimensions split into City, State, Category, Month).
+
+D. Mermaid Code: Star Schema
+
+erDiagram
+    Dim_Customer ||--o{ Fact_Sales : "who bought"
+    Dim_Product ||--o{ Fact_Sales : "what was sold"
+    Dim_Date     ||--o{ Fact_Sales : "when"
+
+     Fact_Sales {
+         int sales_id PK
+         int customer_id FK
+         int product_id FK
+         int date_id FK
+         decimal amount
+     }
+     Dim_Customer {
+         int customer_id PK
+         string name
+         string city
+         string state
+     }
+     Dim_Product {
+         int product_id PK
+         string product_name
+         string category
+         string brand
+     }
+     Dim_Date {
+         int date_id PK
+         date order_date
+         int month
+         int year
+     }
+
+Paste into mermaid.live or any Mermaid viewer to draw the diagram.
+
+E. Mermaid Code: Snowflake Schema
+
+erDiagram
+   Dim_Customer ||--o{ Fact_Sales : ""
+   Dim_Product ||--o{ Fact_Sales : ""
+   Dim_Date     ||--o{ Fact_Sales : ""
+   Dim_City     ||--o{ Dim_Customer : ""
+   Dim_State    ||--o{ Dim_City : ""
+   Dim_Category ||--o{ Dim_Product : ""
+   Dim_Month    ||--o{ Dim_Date : ""
+
+  Fact_Sales {
+      int sales_id PK
+      int customer_id FK
+      int product_id FK
+      int date_id FK
+      decimal amount
+  }
+  Dim_Customer {
+      int customer_id PK
+      string name
+      int city_id FK
+  }
+  Dim_City {
+      int city_id PK
+      string city_name
+      int state_id FK
+  }
+  Dim_State {
+      int state_id PK
+      string state_name
+  }
+  Dim_Product {
+      int product_id PK
+      string product_name
+      int category_id FK
+  }
+  Dim_Category {
+      int category_id PK
+      string category_name
+  }
+  Dim_Date {
+      int date_id PK
+      date order_date
+      int month_id FK
+  }
+  Dim_Month {
+      int month_id PK
+      int month
+      int year
+  }
+
+ADBMS End-Sem (Set 1): Question 6
+Q6. SALES table: SQL queries and OLAP
+Table creation and sample data:
+CREATE TABLE SALES (
+  Sale_ID      INT PRIMARY KEY,
+  Product_Name VARCHAR(50),
+  Quantity     INT,
+  Amount       DECIMAL(10,2)
+);
+INSERT INTO SALES VALUES
+(1, 'Laptop', 2, 100000),
+(2, 'Mouse', 5, 2500),
+(3, 'Keyboard', 3, 4500),
+(4, 'Laptop', 1, 50000),
+(5, 'Mouse', 2, 1000);
+
+(a) Display all sales records
+SELECT * FROM SALES;
+
+Sale_ID     Product_Name         Quantity   Amount
+1           Laptop               2          100000.00
+2           Mouse                5          2500.00
+3           Keyboard             3          4500.00
+4           Laptop               1          50000.00
+5           Mouse                2          1000.00
+
+(b) Total sales amount
+SELECT SUM(Amount) AS Total_Sales FROM SALES;
+
+Total_Sales
+158000.00
+
+(c) Total sales amount product-wise
+SELECT Product_Name, SUM(Amount) AS Total_Sales
+FROM SALES
+GROUP BY Product_Name;
+
+Product_Name         Total_Sales
+Laptop               150000.00
+Mouse                3500.00
+Keyboard             4500.00
+
+Role of OLAP in analysing sales data
+OLAP (Online Analytical Processing) lets users analyse large amounts of data from a data warehouse
+quickly, from many viewpoints (dimensions) such as product, time and region.
+- Roll-up: summarize to a higher level (daily sales to monthly sales).
+- Drill-down: go to more detail (yearly sales to monthly to daily).
+- Slice and dice: select one dimension (only 2026) or a sub-cube (Laptop sales in Pune in Q1).
+- Pivot: rotate the view to see data from a different angle.
+- Helps managers find trends, best-selling products and weak regions, and supports decision making and
+forecasting.
+
+ADBMS End-Sem (Set 1): Answers for
+Q7 and Q8
+Q7. Explain the Star Schema with a suitable example of a college or
+supermarket database. Identify the fact table and any three dimension
+tables.
+A star schema is a database design used in data warehouses. It has one central fact table
+that stores measurable business data (numbers), connected directly to dimension tables
+that store descriptive data. The dimension tables are denormalized (kept as single tables),
+and when drawn, the design looks like a star: the fact table in the middle and dimension
+tables around it.
+
+Example: Supermarket sales data warehouse
+               Dim_Product
+                    |
+Dim_Customer ---- Fact_Sales ---- Dim_Date
+Fact table (one):
+
+-   Fact_Sales(Sale_ID, Product_ID, Customer_ID, Date_ID, Quantity, Amount) - stores
+   the measures (Quantity sold, Amount) and the foreign keys that link to each
+   dimension. One row per sale.
+
+Dimension tables (three):
+
+-   Dim_Product(Product_ID, Product_Name, Category, Brand, Price) - describes each
+   product. Category and Brand are kept in the same table (denormalized).
+-   Dim_Customer(Customer_ID, Name, City, State, Phone) - describes each customer.
+   City and State are kept in the same table.
+-   Dim_Date(Date_ID, Day, Month, Quarter, Year) - describes the date of the sale, so
+   sales can be analysed month-wise or year-wise.
+
+Sample rows
+Fact_Sales
+Sale_ID | Product_ID | Customer_ID | Date_ID | Quantity | Amount
+  1    |    P101    |    C501     | D20260101|    2     | 1500.00
+  2    |    P102    |    C502     | D20260101|    1     | 450.00
+  3    |    P101    |    C503     | D20260102|    3     | 2250.00
+
+Dim_Product                            Dim_Customer
+
+P101 | Rice 5kg | Grocery              C501 | Amit | Pune
+P102 | Soap     | Personal             C502 | Neha | Mumbai
+P103 | Milk 1L | Dairy                 C503 | Rahul | Nashik
+
+Dim_Date
+D20260101 | 01 | Jan | Q1 | 2026
+D20260102 | 02 | Jan | Q1 | 2026
+Why it is called a star and how it is used
+
+-   The fact table is at the centre and each dimension table joins directly to it, so the
+   diagram looks like a star.
+-   Because dimensions are denormalized, a query needs only one join per dimension, so
+   reporting queries are fast and simple.
+-   Example query: total sales category-wise for January 2026 = join Fact_Sales with
+   Dim_Product and Dim_Date, group by Category.
+-   Star schemas are the standard design for OLAP and data warehouse reporting (sales
+   analysis, college admissions analysis, attendance analysis).
+
+Conclusion: in a star schema the fact table holds the numbers (measures) and the
+dimension tables hold the descriptions, giving a simple, fast design for analysis.
+
+Q8. Write minimum 10 complex queries on MongoDB collections using
+various keywords and operators.
+Setup: database StudentDB, collection students (same data as Q3):
+db.students.insertMany([
+{ roll_no: 1, name: "Aayan", department: "IT",   marks: 85, address:
+{ city: "Pune" } },
+{ roll_no: 2, name: "Rahul", department: "CS",   marks: 78, address:
+{ city: "Mumbai" } },
+{ roll_no: 3, name: "Sneha", department: "IT",   marks: 92, address:
+{ city: "Nashik" } },
+{ roll_no: 4, name: "Amit", department: "ENTC", marks: 70, address:
+{ city: "Satara" } },
+{ roll_no: 5, name: "Neha", department: "IT",    marks: 88, address:
+{ city: "Nagpur" }, hobbies: ["music","chess"] },
+{ roll_no: 6, name: "Karan", department: "CS",   marks: 65, address:
+{ city: "Nagpur" }, phone: "9876543210" }
+])
+Query 1: Comparison operator ($gt) with AND condition - IT students with marks
+above 80
+db.students.find({ department: "IT", marks: { $gt: 80 } })
+Output: Aayan (85), Sneha (92), Neha (88) -> 3 documents
+
+Query 2: Logical operator $or - CS students OR students with marks below 70
+db.students.find({ $or: [ { department: "CS" }, { marks: { $lt: 70 } } ]
+})
+Output: Rahul (CS, 78), Karan (CS, 65) -> 2 documents
+
+Query 3: $in operator with projection - only name and marks of IT and CS
+students, without _id
+db.students.find({ department: { $in: ["IT", "CS"] } }, { _id: 0, name:
+1, marks: 1 })
+Output: Aayan, Rahul, Sneha, Neha, Karan (name and marks only) -> 5 documents
+
+Query 4: Range condition ($gte, $lte) with sorting - marks between 70 and 90,
+highest first
+db.students.find({ marks: { $gte: 70, $lte: 90 } }).sort({ marks: -1 })
+Output: Neha (88), Aayan (85), Rahul (78), Amit (70) -> 4 documents
+
+Query 5: skip() and limit() - the student with the 2nd highest marks
+db.students.find().sort({ marks: -1 }).skip(1).limit(1)
+Output: Neha (88) -> 1 document
+
+Query 6: Nested field (dot notation) - students whose address city is Pune
+db.students.find({ "address.city": "Pune" })
+Output: Aayan -> 1 document
+
+Query 7: Regular expression ($regex) - names starting with "A"
+db.students.find({ name: { $regex: "^A" } })
+Output: Aayan, Amit -> 2 documents
+
+Query 8: $exists operator - documents that have a hobbies field
+db.students.find({ hobbies: { $exists: true } })
+Output: Neha -> 1 document
+
+Query 9: $nor operator - students who are NOT from IT and do NOT have marks
+below 60
+db.students.find({ $nor: [ { department: "IT" }, { marks: { $lt:
+60 } } ] })
+Output: Rahul, Amit, Karan -> 3 documents
+
+Query 10: countDocuments() with a condition - number of IT students
+db.students.countDocuments({ department: "IT" })
+Output: 3
+
+Query 11 (bonus): Update operator $inc on many documents - give 5 grace marks to
+all IT students
+db.students.updateMany({ department: "IT" }, { $inc: { marks: 5 } })
+Output: { matchedCount: 3, modifiedCount: 3 }
+
+Query 12 (bonus): Aggregation $group with $avg - average marks per department
+db.students.aggregate([ { $group: { _id: "$department", avgMarks:
+{ $avg: "$marks" } } } ])
+Output: IT -> 88.33, CS -> 71.5, ENTC -> 70
+
+Keywords and operators covered
+
+-   Comparison: $gt, $lt, $gte, $lte
+-   Logical: $or, $nor (and $and, $not work the same way)
+-   Array / element: $in, $exists
+-   String: $regex
+-   Cursor methods: sort(), skip(), limit(), countDocuments()
+-   Update: $inc (also $set, $mul); Aggregation: $group with $avg, $sum
+
+Note: outputs were checked by hand against the sample data, not run on a live MongoDB
+server. Run them once in mongosh or Compass before the exam.
+
+
