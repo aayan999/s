@@ -1,0 +1,526 @@
+Q4.1,to
+Questions Q4.1  Q4.2,
+                  Q4.8Q4.5 and 8
+                       (MySQL  Q4.6
+                                 and(MySQL 8)
+                                     MongoDB)
+
+Question 1: Partitioning
+
+Step 1: Create the partitioned table and insert records
+
+  SQL
+
+  CREATE DATABASE IF NOT EXISTS prac;
+  USE prac;
+
+  CREATE TABLE customer (
+    customer_id INT,
+    customer_name VARCHAR(30),
+    city VARCHAR(20)
+  )
+  PARTITION BY HASH (customer_id)
+  PARTITIONS 4;
+
+  INSERT INTO customer VALUES
+  (1,'Swaroop','Pune'),
+  (2,'Mayur','Pune'),
+  (3,'Faras','Nanded'),
+  (4,'Aditya','Pune'),
+  (5,'Jayesh','Bhopal'),
+  (6,'Rohan','Nashik');
+
+Step 2: Display records of each partition
+
+  SQL
+
+  SELECT * FROM customer PARTITION (p0);
+  SELECT * FROM customer PARTITION (p1);
+  SELECT * FROM customer PARTITION (p2);
+  SELECT * FROM customer PARTITION (p3);
+
+  SELECT PARTITION_NAME, PARTITION_METHOD, PARTITION_DESCRIPTION, TABLE_ROWS
+  FROM INFORMATION_SCHEMA.PARTITIONS
+  WHERE TABLE_SCHEMA = 'prac' AND TABLE_NAME = 'customer';
+
+Step 3: DML operations (UPDATE and DELETE)
+
+  SQL
+
+  UPDATE customer SET city = 'Mumbai' WHERE customer_id = 2;
+  UPDATE customer SET customer_id = 9 WHERE customer_name = 'Faras';
+  DELETE FROM customer WHERE customer_id = 6;
+
+Step 4: Display each partition again
+
+  SQL
+
+  SELECT * FROM customer PARTITION (p0);
+  SELECT * FROM customer PARTITION (p1);
+  SELECT * FROM customer PARTITION (p2);
+  SELECT * FROM customer PARTITION (p3);
+
+Partition-wise data storage
+ • Partitioning: one logical table is split into smaller physical parts called partitions, based on
+   a partition key column (here customer_id).
+ • Range partitioning: each partition holds rows within a range of the key, for example
+   customer_id below 100 in p0, 100 to 199 in p1, and so on.
+ • Hash partitioning: MySQL computes (key value MOD number of partitions) and the result
+   decides the partition. Here customer_id MOD 4 is used, so id 1 goes to p1 and id 4 to p0,
+   and each partition stays about the same size.
+ • Working: on INSERT, MySQL stores the row in the matching partition automatically; on
+   UPDATE of the key, the row moves to the new partition. Each partition can be queried,
+   backed up or maintained separately, which makes data management easier.
+
+Question 2: Distributed Transactions
+
+Distributed transaction
+A distributed transaction is a transaction that updates data in more than one database (or site)
+and must still behave as a single unit: either all the updates are saved or none of them
+(atomicity). The PIN is verified, the balance is updated in the Bank database and the withdrawal
+is logged in the ATM database. Both must succeed together.
+
+Example: ATM cash withdrawal across two databases (Bank and ATM)
+
+  SQL
+
+  CREATE DATABASE IF NOT EXISTS Bank;
+  CREATE DATABASE IF NOT EXISTS ATM;
+
+  CREATE TABLE Bank.account (acc_no INT, pin INT, balance INT);
+  CREATE TABLE ATM.atm_log (log_id INT, acc_no INT, amount INT, type VARCHAR(15));
+
+  INSERT INTO Bank.account VALUES (1,1234,10000);
+
+  SELECT * FROM Bank.account WHERE acc_no = 1 AND pin = 1234;
+
+  START TRANSACTION;
+  UPDATE Bank.account SET balance = balance - 2000 WHERE acc_no = 1;
+  INSERT INTO ATM.atm_log VALUES (1,1,2000,'WITHDRAW');
+  SELECT * FROM Bank.account;
+  SELECT * FROM ATM.atm_log;
+  COMMIT;
+
+  SELECT * FROM Bank.account;
+  SELECT * FROM ATM.atm_log;
+
+Purpose of COMMIT and ROLLBACK
+ • COMMIT: saves all the changes of the transaction permanently in all the databases. Used
+   when every step of the transaction succeeds. The database moves to a new consistent state
+   and both databases show the completed work.
+ • ROLLBACK: cancels all the changes of the transaction in all the databases. Used when any
+   step fails or the user cancels. The database returns to the state before START
+   TRANSACTION, so no half-done work remains and data stays consistent.
+
+Why transaction recovery is required
+1. To ensure Atomicity. A transaction must be completed fully or not at all. If a failure occurs
+   after some operations, the completed operations must be undone (ROLLBACK).
+2. To handle different types of failures. Transactions can fail due to a system crash, power
+   failure, disk failure, network failure between the databases, deadlock or logical errors. The
+   DBMS must recover from all of them.
+3. To maintain Consistency of the database. Partial updates leave the databases in an
+   incorrect state, for example money debited in one database but not credited in the other.
+   Recovery brings them back to a consistent state.
+
+4. To ensure Durability. Once a transaction is committed, its changes must remain
+   permanent even if the system crashes immediately afterwards. Recovery uses the log file to
+   redo committed transactions.
+5. To avoid wrong data being used by other transactions. If a failed transaction's
+   uncommitted changes remain, other transactions may read incorrect values. Recovery
+   removes these changes.
+
+Conclusion: Transaction recovery protects the ACID properties and keeps the databases
+correct and reliable after any failure.
+
+Question 3: MongoDB Insert and Display
+
+   MongoDB
+
+   use hospital
+
+   db.patients.insertOne({patient_id:1,patient_name:"Ramesh",age:45,department:"Cardiology",doctor_name:"Dr.
+   Mehta",contact:{phone:"9000000001",city:"Pune"}})
+
+   db.patients.insertMany([
+      {patient_id:2,patient_name:"Sunita",age:32,department:"Orthopedics",doctor_name:"Dr. Rao",contact:
+   {phone:"9000000002",city:"Mumbai"}},
+      {patient_id:3,patient_name:"Aman",age:60,department:"Cardiology",doctor_name:"Dr. Mehta",contact:
+   {phone:"9000000003",city:"Pune"}},
+      {patient_id:4,patient_name:"Kavya",age:25,department:"Pediatrics",doctor_name:"Dr. Joshi",contact:
+   {phone:"9000000004",city:"Nashik"}},
+      {patient_id:5,patient_name:"Imran",age:52,department:"Neurology",doctor_name:"Dr. Shah",contact:
+   {phone:"9000000005",city:"Pune"}},
+      {patient_id:6,patient_name:"Leela",age:70,department:"Neurology",doctor_name:"Dr.
+   Shah",contact:"9111111111",allergies:["dust","pollen"]}
+   ])
+
+   show collections
+   db.patients.find()
+   db.patients.find().pretty()
+
+Structured and unstructured documents
+    Structured documents follow the same fields every time (patient_id, patient_name, age,
+    department, doctor_name and a nested contact with phone and city).
+    Unstructured documents may miss fields, hold a different type or carry extra fields (patient_id 6
+    has a plain string contact and an extra allergies array). MongoDB accepts them because a collection
+    has no fixed schema.
+    insertOne() stores one document and insertMany() stores an array of documents. The database
+    and collection are created on the first insert.
+    find() with no condition displays all documents. pretty() prints them in a readable layout.
+
+Question 4: MapReduce and Cassandra
+
+MapReduce process
+MapReduce processes large data in parallel in three phases. Example: calculating the number of
+patients in each department of the patients collection.
+
+  Phase                       Working in the example
+
+  Map                         Each patient record is read and the map function emits (key, 1) where key =
+                              department. Output: (Cardiology,1), (Orthopedics,1), (Cardiology,1),
+                              (Pediatrics,1), (Neurology,1), (Neurology,1)
+
+  Shuffle and sort            The pairs are grouped by key. Cardiology: [1,1], Orthopedics: [1], Pediatrics: [1],
+                              Neurology: [1,1]
+
+  Reduce                      The reduce function adds the values of each key. Final output: Cardiology = 2,
+                              Orthopedics = 1, Pediatrics = 1, Neurology = 2
+
+   MongoDB
+
+   db.patients.mapReduce(
+      function () { emit(this.department, 1); },
+      function (key, values) { return Array.sum(values); },
+      { out: "dept_count" }
+   )
+   db.dept_count.find()
+
+Features of Apache Cassandra
+    Distributed and decentralised. Data is spread over many nodes. There is no single master node,
+    so there is no single point of failure.
+    High availability. Data is replicated on several nodes, and the system keeps working even if a
+    node fails.
+    Linear scalability. More nodes can be added without downtime, and throughput grows with the
+    nodes.
+    Wide-column NoSQL model. Data is stored in tables with rows and column families, with a
+    flexible schema.
+    Fast writes and CQL. It handles heavy writes well and offers CQL, a query language similar to
+    SQL.
+
+Application
+Cassandra suits a hospital network that must store huge, fast-growing patient records and monitoring
+data across many servers with high availability.
+
+Question 4: Star Schema vs Snowflake Schema
+
+Introduction
+A data warehouse stores data in a fact table (numeric measures such as amount) surrounded
+by dimension tables (who, what, when). The way dimensions are arranged gives two
+schemas. A star schema keeps each dimension as one denormalised table. A snowflake
+schema normalises the dimensions into more tables (normalisation removes redundancy by
+splitting a table into related tables).
+
+Star Schema (diagram)
+
+               Dim_Customer                                                                Dim_Product
+          customer_id (PK)                                                            product_id (PK)
+          name                                                                        product_name
+          city                                                                        category
+          state                                                                       brand
+                                                        Fact_Sales
+                                               sales_id (PK)
+                                               customer_id (FK)
+                                               product_id (FK)
+                                               date_id (FK)
+                                               amount
+
+                                                        Dim_Date
+                                               date_id (PK)
+                                               order_date
+                                               month
+                                                year
+Fact table in the centre, dimension tables joined directly. Dimensions are flat (denormalised).
+
+Who bought: Dim_Customer. What was sold: Dim_Product. When: Dim_Date. City, state,
+category, month and year sit inside the dimension tables.
+
+Snowflake Schema (diagram)
+
+                   Dim_City                                                           Dim_Category
+          city_id (PK)                                                           category_id (PK)
+          city_name                                                              category_name
+          state_name
+                                                       Fact_Sales
+                                              sales_id (PK)
+               Dim_Customer                                                           Dim_Product
+                                              customer_id (FK)
+          customer_id (PK)                                                       product_id (PK)
+                                              product_id (FK)
+          name                                                                   product_name
+                                              date_id (FK)
+          city_id (FK)                                                           category_id (FK)
+                                              amount
+
+                                                       Dim_Date
+                                              date_id (PK)
+                                              order_date
+                                              month
+                                            year
+Dimensions are normalised further: Customer > City, Product > Category.
+
+Differences (write any four)
+
+  Point                   Star Schema                                     Snowflake Schema
+
+  Structure               Fact table in the centre, dimensions            Dimensions split into sub-dimensions
+                          joined directly (star shape).                   (snowflake shape).
+
+  Dimension               Single, denormalised table per dimension.       Normalised into several related
+  tables                                                                  tables.
+
+  Redundancy              More redundancy (city, state repeat in          Less redundancy, data stored once.
+                          every row).
+
+  Complexity              Simple design, easy to understand.              Complex design, more tables and
+                                                                          keys.
+
+  Query                   Faster, fewer joins (2 in the example).         Slower, more joins (4 in the
+  performance                                                             example).
+
+Example with SQL (same data, same result)
+Star schema: 3 dimension tables, query uses 2 joins.
+
+  SQL
+
+  DROP DATABASE IF EXISTS star_db;
+  CREATE DATABASE star_db;
+  USE star_db;
+
+  CREATE TABLE Dim_Customer (customer_id INT PRIMARY KEY, name VARCHAR(50), city VARCHAR(30),
+       state VARCHAR(30));
+  CREATE TABLE Dim_Product (product_id INT PRIMARY KEY, product_name VARCHAR(50),
+       category VARCHAR(30), brand VARCHAR(30));
+  CREATE TABLE Dim_Date (date_id INT PRIMARY KEY, order_date DATE, month INT, year INT);
+  CREATE TABLE Fact_Sales (
+     sales_id INT PRIMARY KEY,
+     customer_id INT, product_id INT, date_id INT, amount DECIMAL(10,2),
+     FOREIGN KEY (customer_id) REFERENCES Dim_Customer(customer_id),
+     FOREIGN KEY (product_id) REFERENCES Dim_Product(product_id),
+     FOREIGN KEY (date_id) REFERENCES Dim_Date(date_id)
+  );
+
+  INSERT INTO Dim_Customer VALUES (1,'Rahul','Pune','Maharashtra'),(2,'Amit','Bhopal','MP');
+  INSERT INTO Dim_Product VALUES (1,'Laptop','Electronics','Asus'),(2,'Pen','Stationery','Cello');
+  INSERT INTO Dim_Date VALUES (1,'2026-11-01',11,2026),(2,'2026-12-01',12,2026);
+  INSERT INTO Fact_Sales VALUES (1,1,1,1,50000),(2,2,2,2,100),(3,1,2,2,50);
+
+  SELECT * FROM Dim_Customer;
+  SELECT * FROM Dim_Product;
+  SELECT * FROM Dim_Date;
+  SELECT * FROM Fact_Sales;
+
+  SELECT
+      F.Sales_ID,
+      C.Name,
+      P.Category,
+      C.State,
+      F.Amount
+  FROM Fact_Sales F
+  JOIN Dim_Customer C ON F.Customer_ID = C.Customer_ID
+  JOIN Dim_Product P ON F.Product_ID = P.Product_ID;
+
+Snowflake schema
+Snowflake schema: dimensions normalised, the same query needs 4 joins.
+
+  SQL
+
+  DROP DATABASE IF EXISTS snow_db;
+  CREATE DATABASE snow_db;
+  USE snow_db;
+
+  CREATE TABLE Dim_City (city_id INT PRIMARY KEY, city_name VARCHAR(30), state_name VARCHAR(30));
+  CREATE TABLE Dim_Customer (customer_id INT PRIMARY KEY, name VARCHAR(50), city_id INT,
+     FOREIGN KEY (city_id) REFERENCES Dim_City(city_id));
+  CREATE TABLE Dim_Category (category_id INT PRIMARY KEY, category_name VARCHAR(30));
+  CREATE TABLE Dim_Product (product_id INT PRIMARY KEY, product_name VARCHAR(50), category_id INT,
+     FOREIGN KEY (category_id) REFERENCES Dim_Category(category_id));
+  CREATE TABLE Dim_Date (date_id INT PRIMARY KEY, order_date DATE, month INT, year INT);
+  CREATE TABLE Fact_Sales (
+     sales_id INT PRIMARY KEY,
+     customer_id INT, product_id INT, date_id INT, amount DECIMAL(10,2),
+     FOREIGN KEY (customer_id) REFERENCES Dim_Customer(customer_id),
+     FOREIGN KEY (product_id) REFERENCES Dim_Product(product_id),
+     FOREIGN KEY (date_id) REFERENCES Dim_Date(date_id)
+  );
+
+  INSERT INTO Dim_City VALUES (1,'Pune','Maharashtra'),(2,'Bhopal','MP');
+  INSERT INTO Dim_Customer VALUES (1,'Rahul',1),(2,'Amit',2);
+  INSERT INTO Dim_Category VALUES (1,'Electronics'),(2,'Stationery');
+  INSERT INTO Dim_Product VALUES (1,'Laptop',1),(2,'Pen',2);
+  INSERT INTO Dim_Date VALUES (1,'2026-11-01',11,2026),(2,'2026-12-01',12,2026);
+  INSERT INTO Fact_Sales VALUES (1,1,1,1,50000),(2,2,2,2,100),(3,1,2,2,50);
+
+  SELECT * FROM Dim_City;
+  SELECT * FROM Dim_Customer;
+  SELECT * FROM Dim_Category;
+  SELECT * FROM Dim_Product;
+  SELECT * FROM Dim_Date;
+  SELECT * FROM Fact_Sales;
+
+  SELECT
+      F.Sales_ID,
+      C.Name,
+      Cat.Category_Name,
+      Ci.State_Name,
+      F.Amount
+  FROM Fact_Sales F
+  JOIN Dim_Customer C ON F.Customer_ID = C.Customer_ID
+  JOIN Dim_City Ci ON C.City_ID = Ci.City_ID
+  JOIN Dim_Product P ON F.Product_ID = P.Product_ID
+  JOIN Dim_Category Cat ON P.Category_ID = Cat.Category_ID;
+
+Conclusion
+Star schema is simpler and faster for queries, snowflake saves storage and reduces
+redundancy but needs more joins. The same question was answered with 2 joins in star and 4
+joins in snowflake.
+
+Question 6: SQL Queries and OLAP
+
+Create the table and insert records
+
+  SQL
+
+  CREATE TABLE student(
+     roll_no INT,
+     student_name VARCHAR(30),
+     department VARCHAR(20),
+     city VARCHAR(20),
+     marks INT
+  );
+
+  INSERT INTO student VALUES
+  (1,'Swaroop','IT','Pune',98),
+  (2,'Mayur','IT','Pune',78),
+  (3,'Faras','CS','Nanded',48),
+  (4,'Aditya','ENTC','Pune',68),
+  (5,'Jayesh','ENTC','Bhopal',88);
+
+(a) Display all records
+
+  SQL
+
+  SELECT * FROM student;
+
+(b) Aggregate value
+
+  SQL
+
+  SELECT MAX(marks) AS max_marks FROM student;
+
+(c) Group-wise value using GROUP BY
+
+  SQL
+
+  SELECT department, AVG(marks) AS avg_marks FROM student GROUP BY department;
+
+Role of OLAP
+OLAP (Online Analytical Processing) is used to analyse large amounts of data from different
+points of view, on a data warehouse that stores historical data.
+
+ • Multidimensional analysis. Student data can be viewed by dimensions such as
+   department, city and marks, from multiple dimensions at once.
+ • Roll-up and drill-down. Move between the institute-level summary and one department
+   or one student.
+ • Slice, dice and pivot. Slice gives one department, dice gives selected departments and
+   cities, and pivot rotates the view.
+ • Fast summaries. Maximum and average marks department-wise and city-wise are
+   returned quickly.
+
+ • Decision making. Compare departments and cities, and support quick, flexible analysis for
+   decisions.
+
+Question 7: Star Schema Example
+
+Star schema of a e-commerce database
+A star schema has one central fact table joined directly to flat dimension tables. The fact table holds
+the measures and foreign keys. Each dimension holds descriptive data, so the diagram looks like a star.
+
+                        Dim_Customer                                                    Dim_Product
+                customer_id INT PK                                             product_id INT PK
+                name VARCHAR                                                   product_name VARCHAR
+                city VARCHAR                                                   category VARCHAR
+                state VARCHAR                                                  brand VARCHAR
+
+                                 1     who bought                                   what was sold 1
+                                                    N                      N
+                                                             Fact_Orders
+                                              order_id INT PK
+                                              customer_id INT FK
+                                              product_id INT FK
+                                              date_id INT FK
+                                              quantity INT
+                                              total_amount DECIMAL
+
+                                                                      N
+                                                                   when
+                                                                  1
+                                                          Dim_Date
+                                              date_id INT PK
+                                              order_date DATE
+                                              month INT
+                                              year INT
+
+Fact table and dimension tables
+   Fact table: Fact_Orders. It stores the measure (quantity and total_amount) and a foreign key to each
+   dimension.
+   Dimension 1: Dim_Customer. Describes the buyer: name, city and state.
+   Dimension 2: Dim_Product. Describes the item ordered: name, category and brand.
+   Dimension 3: Dim_Date. Describes the order date: day, month and year.
+
+   SQL
+
+   CREATE TABLE Dim_Customer (customer_id INT PRIMARY KEY, name VARCHAR(50), city VARCHAR(30), state
+   VARCHAR(30));
+   CREATE TABLE Dim_Product (product_id INT PRIMARY KEY, product_name VARCHAR(50), category VARCHAR(30),
+   brand VARCHAR(30));
+   CREATE TABLE Dim_Date (date_id INT PRIMARY KEY, order_date DATE, month INT, year INT);
+   CREATE TABLE Fact_Orders (
+      order_id INT PRIMARY KEY,
+      customer_id INT, product_id INT, date_id INT,
+      quantity INT, total_amount DECIMAL(10,2),
+      FOREIGN KEY (customer_id) REFERENCES Dim_Customer(customer_id),
+      FOREIGN KEY (product_id) REFERENCES Dim_Product(product_id),
+      FOREIGN KEY (date_id) REFERENCES Dim_Date(date_id)
+   );
+
+Because the dimensions are flat, queries need fewer joins and run fast, which suits OLAP analysis.
+
+Question 8: MongoDB Queries
+
+   MongoDB
+
+   use hospital
+   db.patients.find()
+
+   db.patients.find({department:"Cardiology"})
+
+   db.patients.find({age:{$gt:40}})
+
+   db.patients.find({age:{$gte:30,$lte:60}}).sort({age:1})
+
+   db.patients.find({doctor_name:"Dr. Shah"},{_id:0,patient_name:1,age:1})
+
+   db.patients.find({department:{$in:["Neurology","Pediatrics"]}}).sort({patient_name:1})
+
+   db.patients.find({patient_name:/^A/})
+
+   db.patients.find({"contact.city":"Pune"})
+
+   db.patients.find({allergies:{$exists:true}})
+
+   db.patients.find().sort({age:-1}).limit(3)
+
+Operators and keywords used
+    Retrieve: find() with and without conditions, projection and $exists.
+    Filter: $gt, $gte, $lte, $in, a regex /^A/ and dot notation for contact.city.
+    Sort: sort() with 1 for ascending and -1 for descending, and limit().
