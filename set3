@@ -1,0 +1,1309 @@
+######################################################################
+#  ADBMS END-SEM  -  SET 3
+######################################################################
+
+Department of Information Technology
+                              END-SEM EXAMINATION 2026-27 (Sem-V)
+                   ADVANCED DATABASE MANAGEMENT SYSTEM (ITPEC509A)
+                     Activity based Lab-work [Set-3] | Max Marks: 60 | Date: 25/11/26
+                                            Answers: Q1 to Q8
+Pattern: attempt (Q1 and Q2) OR (Q3 and Q4), then (Q5 and Q6) OR (Q7 and Q8). 15 marks each.
+Write one full group from each pair. All SQL and MongoDB outputs below are worked out by hand
+and not run on a live server, so run each script once in MySQL Workbench / mongosh before the
+exam.
+
+======================================================================
+Q. 1. Create a PRODUCT table using range or hash partitioning based on product
+price or product category. Perform DML operations such as INSERT, UPDATE and
+DELETE on the partitioned table. Retrieve and display records from each partition
+separately using suitable SQL queries. Explain the advantages of partition-wise data
+retrieval.
+Aim
+Create a PRODUCT table partitioned by price range, run INSERT, UPDATE and DELETE, and
+display records partition by partition.
+
+Step 1: Create the partitioned table
+SQL:
+  CREATE DATABASE IF NOT EXISTS exam_db;
+  USE exam_db;
+
+  CREATE TABLE Product (
+      Product_ID INT NOT NULL,
+      Product_Name VARCHAR(30),
+      Category VARCHAR(20),
+      Price INT NOT NULL,
+      PRIMARY KEY (Product_ID, Price)
+  )
+  PARTITION BY RANGE (Price) (
+      PARTITION p0 VALUES LESS THAN (1000),
+      PARTITION p1 VALUES LESS THAN (10000),
+      PARTITION p2 VALUES LESS THAN (50000),
+      PARTITION p3 VALUES LESS THAN (MAXVALUE)
+  );
+
+Rule: in MySQL the partitioning column (Price) must be part of the PRIMARY KEY, so the key is
+(Product_ID, Price).
+
+Step 2: INSERT records
+SQL:
+  INSERT INTO Product (Product_ID, Product_Name, Category, Price) VALUES
+  (1, 'Pen', 'Stationery', 50),
+  (2, 'Notebook', 'Stationery', 900),
+  (3, 'Headphones', 'Electronics', 2500),
+  (4, 'Mouse', 'Electronics', 800),
+  (5, 'Smartphone', 'Electronics', 18000),
+  (6, 'Laptop', 'Electronics', 55000),
+  (7, 'Chair', 'Furniture', 4500),
+  (8, 'Study Table', 'Furniture', 12000);
+
+Display all records:
+  SELECT * FROM Product;
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 1           | Pen         | Stationery | 50     |
+  | 2           | Notebook    | Stationery | 900    |
+  | 3           | Headphones  | Electronics | 2500 |
+  | 4           | Mouse       | Electronics | 800   |
+  | 5           | Smartphone  | Electronics | 18000 |
+  | 6           | Laptop      | Electronics | 55000 |
+  | 7           | Chair       | Furniture   | 4500 |
+  | 8           | Study Table | Furniture   | 12000 |
+  +------------+--------------+-------------+-------+
+  8 rows in set
+
+Step 3: Display records from each partition separately
+Partition p0:
+  SELECT * FROM Product PARTITION (p0);
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 1           | Pen         | Stationery | 50     |
+  | 2           | Notebook    | Stationery | 900    |
+  | 4           | Mouse       | Electronics | 800   |
+  +------------+--------------+-------------+-------+
+  3 rows in set
+
+Partition p1:
+  SELECT * FROM Product PARTITION (p1);
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 3           | Headphones  | Electronics | 2500 |
+  | 7           | Chair       | Furniture   | 4500 |
+  +------------+--------------+-------------+-------+
+  2 rows in set
+
+Partition p2:
+  SELECT * FROM Product PARTITION (p2);
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 5           | Smartphone  | Electronics | 18000 |
+  | 8           | Study Table | Furniture   | 12000 |
+  +------------+--------------+-------------+-------+
+  2 rows in set
+
+Partition p3:
+  SELECT * FROM Product PARTITION (p3);
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 6          | Laptop       | Electronics | 55000 |
+  +------------+--------------+-------------+-------+
+  1 row in set
+
+Step 4: UPDATE
+SQL:
+  UPDATE Product SET Price = Price + 200 WHERE Product_Name = 'Notebook';
+
+Notebook price changes from 900 to 1100, so MySQL moves the row from partition p0 (price below
+1000) to p1 (1000 to 9999) automatically.
+  SELECT * FROM Product;
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 1           | Pen         | Stationery | 50     |
+  | 2           | Notebook    | Stationery | 1100 |
+  | 3           | Headphones  | Electronics | 2500 |
+  | 4           | Mouse       | Electronics | 800   |
+  | 5           | Smartphone  | Electronics | 18000 |
+  | 6           | Laptop      | Electronics | 55000 |
+  | 7           | Chair       | Furniture   | 4500 |
+  | 8           | Study Table | Furniture   | 12000 |
+  +------------+--------------+-------------+-------+
+  8 rows in set
+
+Step 5: DELETE
+SQL:
+  DELETE FROM Product WHERE Product_ID = 1;
+
+  SELECT * FROM Product;
+
+Output:
+  +------------+--------------+-------------+-------+
+  | Product_ID | Product_Name | Category    | Price |
+  +------------+--------------+-------------+-------+
+  | 2           | Notebook    | Stationery | 1100 |
+  | 3           | Headphones  | Electronics | 2500 |
+  | 4           | Mouse       | Electronics | 800   |
+  | 5           | Smartphone  | Electronics | 18000 |
+  | 6           | Laptop      | Electronics | 55000 |
+  | 7           | Chair       | Furniture   | 4500 |
+  | 8           | Study Table | Furniture   | 12000 |
+  +------------+--------------+-------------+-------+
+  7 rows in set
+
+Step 6: Check how many rows each partition holds
+  SELECT PARTITION_NAME, TABLE_ROWS
+  FROM INFORMATION_SCHEMA.PARTITIONS
+  WHERE TABLE_SCHEMA = 'exam_db' AND TABLE_NAME = 'Product';
+
+Output:
+  +----------------+------------+
+  | PARTITION_NAME | TABLE_ROWS |
+  +----------------+------------+
+  | p0             | 1          |
+  | p1             | 3          |
+  | p2             | 2          |
+  | p3             | 1          |
+  +----------------+------------+
+  4 rows in set
+
+Working of partition-wise data storage
+ - Range partitioning by Price: p0 = below 1000 (budget items), p1 = 1000 to 9999, p2 = 10000 to
+   49999, p3 = 50000 and above.
+ - On INSERT, MySQL checks the Price value and stores the row in the matching partition. Each
+   partition is a separate storage unit of the same logical table.
+ - Advantages of partition-wise retrieval:
+ - Faster queries: a query on one price band reads only that partition (partition pruning) and not the
+   whole table.
+ - Less I/O and better use of indexes, because each partition and its index is smaller.
+ - Easy management: old or unused partitions can be dropped or backed up separately (ALTER
+   TABLE Product DROP PARTITION p0).
+ - Parallel work: different partitions can be read or maintained at the same time.
+ - Hash alternative: PARTITION BY HASH(Product_ID) PARTITIONS 4 spreads rows evenly
+   when no natural range exists.
+Conclusion: partitioning splits one big table into smaller physical parts by a rule on a column. The
+user still writes normal queries on Product, MySQL decides which partition stores each row, and
+queries that name a partition (or filter on Price) read only that part.
+
+
+======================================================================
+Q. 2. Explain distributed transactions with a simple online shopping example
+involving payment and order placement. Describe the role of COMMIT and
+ROLLBACK and explain how transaction recovery helps maintain database
+consistency.
+1. What is a distributed transaction?
+A distributed transaction is one logical unit of work that updates data on more than one database or
+server. All the parts must succeed together or all must fail, so that the data stays consistent. In online
+shopping, stock, order and payment data are often kept on different servers.
+
+2. Example: online shopping (order placement + payment)
+ - Order server: reduces stock in Product_Stock and creates a row in Orders.
+ - Payment server: records the payment in Payment.
+ - The purchase is valid only if stock update, order and payment all succeed. If payment fails, the
+    stock and order must be undone.
+
+3. Tables and sample data
+SQL:
+  CREATE TABLE Product_Stock (
+      Item_ID   INT PRIMARY KEY,
+      Item_Name VARCHAR(30),
+      Qty       INT
+  );
+  CREATE TABLE Orders (
+      Order_ID INT AUTO_INCREMENT PRIMARY KEY,
+      Customer VARCHAR(30),
+      Item_ID INT,
+      Qty      INT
+  );
+  CREATE TABLE Payment (
+      Pay_ID   INT AUTO_INCREMENT PRIMARY KEY,
+      Order_ID INT,
+      Amount   INT,
+      Status   VARCHAR(10)
+  );
+  INSERT INTO Product_Stock VALUES (1,'Phone',10),(2,'Earbuds',25);
+
+  SELECT * FROM Product_Stock;
+
+Output:
+  +---------+-----------+-----+
+  | Item_ID | Item_Name | Qty |
+  +---------+-----------+-----+
+  | 1       | Phone     | 10 |
+  | 2       | Earbuds   | 25 |
+  +---------+-----------+-----+
+  2 rows in set
+
+4. COMMIT: everything succeeds
+SQL:
+  START TRANSACTION;
+  UPDATE Product_Stock SET Qty = Qty - 1 WHERE Item_ID = 1;
+  INSERT INTO Orders (Customer, Item_ID, Qty) VALUES ('Ravi', 1, 1);
+  INSERT INTO Payment (Order_ID, Amount, Status)
+         VALUES (LAST_INSERT_ID(), 15000, 'PAID');
+  COMMIT;
+
+COMMIT makes all changes of the transaction permanent and visible to other users.
+  SELECT * FROM Product_Stock;
+
+Output:
+  +---------+-----------+-----+
+  | Item_ID | Item_Name | Qty |
+  +---------+-----------+-----+
+  | 1       | Phone     | 9   |
+  | 2       | Earbuds   | 25 |
+  +---------+-----------+-----+
+  2 rows in set
+
+  SELECT * FROM Orders;
+
+Output:
+  +----------+----------+---------+-----+
+  | Order_ID | Customer | Item_ID | Qty |
+  +----------+----------+---------+-----+
+  | 1        | Ravi     | 1       | 1   |
+  +----------+----------+---------+-----+
+  1 row in set
+
+  SELECT * FROM Payment;
+
+Output:
+  +--------+----------+--------+--------+
+  | Pay_ID | Order_ID | Amount | Status |
+  +--------+----------+--------+--------+
+  | 1      | 1        | 15000 | PAID    |
+  +--------+----------+--------+--------+
+  1 row in set
+
+5. ROLLBACK: something fails
+Priya orders Earbuds. Stock is reduced and the order row is inserted, but the payment gateway fails.
+Everything must be undone.
+SQL:
+  START TRANSACTION;
+  UPDATE Product_Stock SET Qty = Qty - 1 WHERE Item_ID = 2;
+  INSERT INTO Orders (Customer, Item_ID, Qty) VALUES ('Priya', 2, 1);
+  -- payment fails here, so cancel the whole order
+  ROLLBACK;
+
+ROLLBACK cancels every change made since START TRANSACTION and restores the old
+values.
+
+  SELECT * FROM Product_Stock;
+
+Output:
+  +---------+-----------+-----+
+  | Item_ID | Item_Name | Qty |
+  +---------+-----------+-----+
+  | 1       | Phone     | 9   |
+  | 2       | Earbuds   | 25 |
+  +---------+-----------+-----+
+  2 rows in set
+
+  SELECT * FROM Orders;
+
+Output:
+  +----------+----------+---------+-----+
+  | Order_ID | Customer | Item_ID | Qty |
+  +----------+----------+---------+-----+
+  | 1        | Ravi     | 1       | 1   |
+  +----------+----------+---------+-----+
+  1 row in set
+
+6. Two-Phase Commit (2PC) across two servers
+When the two tables live on different servers, a transaction manager uses 2PC. Phase 1 (prepare):
+every server does its work and replies YES or NO. Phase 2 (commit): if all say YES the manager
+sends COMMIT to all, otherwise ROLLBACK to all. In MySQL this is done with XA commands:
+SQL:
+  -- Branch 1: order server
+  XA START 'ord1';
+  UPDATE Product_Stock SET Qty = Qty - 1 WHERE Item_ID = 2;
+  INSERT INTO Orders (Order_ID, Customer, Item_ID, Qty) VALUES (10, 'Amit', 2, 1);
+  XA END 'ord1';
+  XA PREPARE 'ord1';
+
+  -- Branch 2: payment server
+  XA START 'pay1';
+  INSERT INTO Payment (Order_ID, Amount, Status) VALUES (10, 1500, 'PAID');
+  XA END 'pay1';
+  XA PREPARE 'pay1';
+
+  -- Phase 2: both said YES, so commit both
+  XA COMMIT 'ord1';
+  XA COMMIT 'pay1';
+
+Check prepared transactions (before the XA COMMIT lines):
+  XA RECOVER;
+
+Output:
+  +----------+--------------+--------------+------+
+  | formatID | gtrid_length | bqual_length | data |
+  +----------+--------------+--------------+------+
+  | 1        | 4            | 0            | ord1 |
+  | 1        | 4            | 0            | pay1 |
+  +----------+--------------+--------------+------+
+  2 rows in set
+
+To cancel instead, use XA ROLLBACK 'branch_id'; in place of XA COMMIT.
+
+7. Why transaction recovery is required
+ - If the system crashes after payment is taken but before the order is saved, the customer pays and
+   gets nothing. If it crashes after stock is reduced but before payment, stock is lost for no sale.
+ - The log records every change. On restart, committed transactions are redone and unfinished ones
+   are rolled back, so the database returns to a consistent state.
+ - Prepared XA branches survive a crash. They are listed with XA RECOVER and finished with XA
+   COMMIT or XA ROLLBACK.
+ - Recovery keeps stock, orders and payments consistent with each other (atomicity, consistency,
+   durability).
+Conclusion: COMMIT saves all the changes of a successful transaction, ROLLBACK undoes them
+when any step fails, and recovery uses the log to bring the database back to a consistent state after a
+crash. Together they keep distributed data correct (atomicity and consistency).
+
+Step 1: Create database and collections
+  use company
+
+  db.createCollection('employees')                   // structured documents
+  db.createCollection('employees_flex')              // unstructured documents
+
+
+======================================================================
+Q. 3. Create a MongoDB database and suitable collections. Insert structured and
+unstructured JSON documents containing employee details such as employee ID,
+name, designation, department, salary and contact information. Perform suitable
+insert and display operations to retrieve and view all JSON documents from the
+created collections.
+Output:
+  switched to db company
+  { ok: 1 }
+  { ok: 1 }
+
+Step 2: Insert structured documents (same fields)
+  db.employees.insertMany([
+    {
+       _id: 1,
+       emp_id: 'E101',
+       name: 'Ravi Patil',
+       designation: 'Developer',
+       department: 'IT',
+       salary: 55000,
+       contact: { phone: '9876500001', email: 'ravi@corp.com' }
+    },
+    {
+       _id: 2,
+       emp_id: 'E102',
+       name: 'Priya Shah',
+       designation: 'Tester',
+       department: 'IT',
+       salary: 45000,
+       contact: { phone: '9876500002', email: 'priya@corp.com' }
+    },
+    {
+       _id: 3,
+       emp_id: 'E103',
+       name: 'Amit Joshi',
+       designation: 'Manager',
+       department: 'HR',
+       salary: 80000,
+       contact: { phone: '9876500003', email: 'amit@corp.com' }
+    },
+    {
+       _id: 4,
+       emp_id: 'E104',
+       name: 'Sneha Kulkarni',
+       designation: 'Accountant',
+       department: 'Finance',
+       salary: 50000,
+       contact: { phone: '9876500004', email: 'sneha@corp.com' }
+    },
+    {
+       _id: 5,
+       emp_id: 'E105',
+       name: 'Rahul Deshmukh',
+       designation: 'Developer',
+       department: 'IT',
+       salary: 60000,
+       contact: { phone: '9876500005', email: 'rahul@corp.com' }
+    },
+    {
+       _id: 6,
+       emp_id: 'E106',
+       name: 'Neha More',
+       designation: 'Analyst',
+       department: 'Finance',
+       salary: 52000,
+       contact: { phone: '9876500006', email: 'neha@corp.com' }
+    },
+    {
+       _id: 7,
+       emp_id: 'E107',
+       name: 'Karan Singh',
+       designation: 'Clerk',
+       department: 'HR',
+       salary: 30000,
+       contact: { phone: '9876500007' }
+    }
+  ]);
+
+Output:
+  {
+      acknowledged: true,
+      insertedIds: { '0': 1, '1': 2, '2': 3, '3': 4, '4': 5, '5': 6, '6': 7 }
+  }
+
+Step 3: Insert unstructured documents (different fields)
+  db.employees_flex.insertMany([
+    { _id: 101, name: 'Contract Worker', skills: ['Java', 'SQL'], daily_rate: 2000 },
+    {
+       _id: 102,
+       emp_id: 'E201',
+       name: 'Intern One',
+       department: 'IT',
+       stipend: 8000,
+       mentor: { name: 'Ravi Patil', emp_id: 'E101' }
+    },
+    {
+       _id: 103,
+       name: 'Consultant Dev',
+       company: 'ABC Tech',
+       contact: { email: 'dev@abc.com' },
+       projects: ['ERP', 'CRM'],
+       remote: true
+    }
+  ]);
+
+Output:
+  {
+      acknowledged: true,
+      insertedIds: { '0': 101, '1': 102, '2': 103 }
+  }
+
+MongoDB is schema-less: one document has skills and daily_rate, another has a mentor
+sub-document, another has projects and a remote flag. All can sit in one collection.
+Output:
+
+  {
+      _id: 1,
+      emp_id: 'E101',
+      name: 'Ravi Patil',
+      designation: 'Developer',
+      department: 'IT',
+      salary: 55000,
+      contact: { phone: '9876500001', email: 'ravi@corp.com' }
+  }
+  {
+      _id: 2,
+      emp_id: 'E102',
+      name: 'Priya Shah',
+      designation: 'Tester',
+      department: 'IT',
+      salary: 45000,
+      contact: { phone: '9876500002', email: 'priya@corp.com' }
+  }
+  {
+      _id: 3,
+      emp_id: 'E103',
+      name: 'Amit Joshi',
+      designation: 'Manager',
+      department: 'HR',
+      salary: 80000,
+      contact: { phone: '9876500003', email: 'amit@corp.com' }
+  }
+  {
+      _id: 4,
+      emp_id: 'E104',
+      name: 'Sneha Kulkarni',
+      designation: 'Accountant',
+      department: 'Finance',
+      salary: 50000,
+      contact: { phone: '9876500004', email: 'sneha@corp.com' }
+  }
+  {
+      _id: 5,
+      emp_id: 'E105',
+      name: 'Rahul Deshmukh',
+      designation: 'Developer',
+      department: 'IT',
+      salary: 60000,
+      contact: { phone: '9876500005', email: 'rahul@corp.com' }
+  }
+  {
+      _id: 6,
+      emp_id: 'E106',
+      name: 'Neha More',
+      designation: 'Analyst',
+      department: 'Finance',
+      salary: 52000,
+      contact: { phone: '9876500006', email: 'neha@corp.com' }
+  }
+  {
+      _id: 7,
+      emp_id: 'E107',
+      name: 'Karan Singh',
+      designation: 'Clerk',
+      department: 'HR',
+      salary: 30000,
+      contact: { phone: '9876500007' }
+  }
+
+Step 4: Display all documents
+  db.employees.find().pretty()
+
+  db.employees_flex.find().pretty()
+
+Output:
+  { _id: 101, name: 'Contract Worker', skills: ['Java', 'SQL'], daily_rate: 2000 }
+  {
+    _id: 102,
+    emp_id: 'E201',
+    name: 'Intern One',
+    department: 'IT',
+    stipend: 8000,
+    mentor: { name: 'Ravi Patil', emp_id: 'E101' }
+  }
+  {
+    _id: 103,
+    name: 'Consultant Dev',
+    company: 'ABC Tech',
+    contact: { email: 'dev@abc.com' },
+    projects: ['ERP', 'CRM'],
+    remote: true
+  }
+
+  db.employees.countDocuments()
+  db.employees_flex.countDocuments()
+
+Output:
+  7
+  3
+
+Conclusion: insertMany() stores many JSON documents together and find() retrieves them.
+MongoDB handles both structured and unstructured employee data in the same database.
+
+
+======================================================================
+Q. 4. Explain the MapReduce process with a simple example of finding the total
+number of products in each category. Also explain the key features of Apache
+Cassandra and mention one suitable real-world application.
+1. MapReduce process
+MapReduce is a programming model for processing large data in parallel. The work is split into three
+steps:
+ - Map: reads every document and emits a (key, value) pair. Here: (category, 1) for each product.
+ - Shuffle / group: the system groups all values that have the same key.
+ - Reduce: adds up (or otherwise combines) the values of each key to give one final result per key.
+
+2. Example: number of products in each category
+Collection products has 8 documents. Each product document has a category field, using the 8
+products from Q1.
+  Step               Result
+  Map                (Stationery, 1), (Stationery, 1), (Electronics, 1), (Electronics, 1), (Electronics, 1),
+                     (Electronics, 1), (Furniture, 1), (Furniture, 1)
+  Shuffle            Electronics: [1,1,1,1], Furniture: [1,1], Stationery: [1,1]
+  Reduce             Electronics = 4, Furniture = 2, Stationery = 2
+
+MongoDB (mongosh):
+  var mapFn = function () {
+      emit(this.category, 1);
+  };
+
+  var reduceFn = function (key, values) {
+      return Array.sum(values);
+  };
+
+  db.products.mapReduce(
+      mapFn,
+      reduceFn,
+      { out: 'count_by_category' }
+  );
+
+  db.count_by_category.find();
+
+Output:
+  { _id: 'Electronics', value: 4 }
+  { _id: 'Furniture', value: 2 }
+  { _id: 'Stationery', value: 2 }
+
+The same result with the aggregation pipeline (newer, recommended way):
+  db.products.aggregate([
+      { $group: { _id: '$category', total: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+  ]);
+
+Output:
+  { _id: 'Electronics', total: 4 }
+  { _id: 'Furniture', total: 2 }
+  { _id: 'Stationery', total: 2 }
+
+3. Features of Apache Cassandra
+ - Distributed and decentralised: every node is equal (peer-to-peer ring), there is no master node,
+     so no single point of failure.
+ -   Highly available: data is copied to several nodes (replication factor), so the system keeps
+     working if a node or a data centre fails.
+ -   Linear scalability: add more nodes and read/write capacity grows in proportion.
+ -   Fast writes: writes go to a commit log and memtable first, so write throughput is very high.
+ -   Wide-column NoSQL store with CQL: data is stored in tables with rows and columns, and
+     queried with SQL-like Cassandra Query Language.
+ -   Tunable consistency: for each query you choose how many replicas must reply (ONE,
+     QUORUM, ALL).
+
+4. Real-world application
+Netflix stores viewing history and user activity in Cassandra. It needs huge write volumes, many data
+centres and no downtime. Other uses: messaging apps, IoT sensor data, order and product catalogues
+of online shops.
+Conclusion: MapReduce counts data in parallel with Map, Shuffle and Reduce, and Cassandra is a
+distributed, always-available NoSQL database used for large scale applications.
+
+Q5. Differentiate between Star Schema and Snowflake Schema
+with a suitable diagram or example. Write any four differences.
+Introduction
+A data warehouse stores data in a fact table (numeric measures such as amount and quantity)
+surrounded by dimension tables (descriptive data such as customer, product, date). The two common
+ways to arrange them are the Star Schema and the Snowflake Schema.
+
+Star Schema
+One central fact table is joined directly to dimension tables. Each dimension is denormalized: all its
+attributes sit in one table. The diagram looks like a star.
+
+Snowflake Schema
+A variation of the star schema in which the dimension tables are normalized into further sub-tables. The
+diagram branches out like a snowflake.
+
+Diagram (Sales example)
+STAR SCHEMA
+
+Dim_Customer                           Dim_Product
+(customer_id PK, name,                 (product_id PK, product_name,
+ city, state)                           category, brand)
+       \                                   /
+         \                               /
+           +-------- Fact_Sales ---------+
+           | sales_id PK                 |
+           | customer_id FK              |
+           | product_id FK               |
+           | date_id FK, amount          |
+           +-------------+---------------+
+                         |
+                    Dim_Date
+                    (date_id PK, order_date, month, year)
+
+SNOWFLAKE SCHEMA
+
+Dim_State -- Dim_City -- Dim_Customer        Dim_Category -- Dim_Product
+(state_id)   (city_id,   (customer_id,        (category_id)    (product_id,
+              state_id)   name, city_id)                        category_id)
+                               \                                 /
+                                 +-------- Fact_Sales --------+
+                                 | sales_id, customer_id,        |
+                                 | product_id, date_id, amount |
+                                 +-------------+---------------+
+                                                |
+                                   Dim_Date -- Dim_Month
+                                   (date_id,      (month_id, month,
+                                    month_id)      year)
+
+
+Four Differences
+No.    Star Schema                                        Snowflake Schema
+1      Dimension tables are denormalized (one table per   Dimension tables are normalized into sub-tables
+       dimension).                                        (Customer to City to State).
+2      Simple design, fewer tables, easy to understand.   Complex design, more tables, harder to
+                                                          understand.
+3      Fewer joins, so queries run faster.                More joins, so queries are slower.
+4      Data redundancy is high (city and state repeat).   Data redundancy is low, so storage is saved.
+5      Needs more storage space.                          Needs less storage space.
+6      Easy to maintain for reporting; harder to update   Easier to update a value once, but ETL and
+       repeated values.                                   maintenance are more complex.
+
+Any four of the above are enough for the answer.
+
+Example
+Star: Dim_Customer(customer_id, name, city, state). The city 'Pune' and state 'Maharashtra' repeat for
+every customer from Pune. A query for sales by state joins only Fact_Sales and Dim_Customer.
+Snowflake: Dim_Customer(customer_id, name, city_id) joins to Dim_City(city_id, city_name, state_id),
+which joins to Dim_State(state_id, state_name). 'Maharashtra' is stored once. A query for sales by state
+joins Fact_Sales, Dim_Customer, Dim_City and Dim_State.
+Fact table: Fact_Sales. Dimension tables: Dim_Customer, Dim_Product, Dim_Date (star); plus Dim_City,
+Dim_State, Dim_Category, Dim_Month (snowflake).
+
+Conclusion
+The star schema is simpler and faster for queries but stores repeated data. The snowflake schema saves
+space and keeps data consistent but needs more joins. The SQL code for both is in Sections A and B of
+this file.
+
+      Q5. Star Schema and Snowflake Schema in MySQL
+Fact table: Fact_Sales. Dimension tables: Dim_Customer, Dim_Product, Dim_Date (star); plus Dim_City,
+Dim_State, Dim_Category, Dim_Month (snowflake).
+
+A. Star Schema
+CREATE DATABASE star_schema;
+USE star_schema;
+
+-- Dimension tables (denormalized: everything in one table)
+CREATE TABLE Dim_Customer (
+    Customer_ID INT PRIMARY KEY,
+    Customer_Name VARCHAR(50),
+    City VARCHAR(50),
+    State VARCHAR(50)
+);
+
+CREATE TABLE Dim_Product (
+    Product_ID INT PRIMARY KEY,
+    Product_Name VARCHAR(50),
+    Category VARCHAR(50),
+    Brand VARCHAR(50)
+);
+
+CREATE TABLE Dim_Date (
+    Date_ID INT PRIMARY KEY,
+    Full_Date DATE,
+    Month VARCHAR(20),
+    Year INT
+);
+
+-- Fact table (center of the star)
+CREATE TABLE Fact_Sales (
+    Sale_ID INT PRIMARY KEY,
+    Customer_ID INT,
+    Product_ID INT,
+    Date_ID INT,
+    Quantity INT,
+    Amount DECIMAL(10,2),
+    FOREIGN KEY (Customer_ID) REFERENCES Dim_Customer(Customer_ID),
+    FOREIGN KEY (Product_ID) REFERENCES Dim_Product(Product_ID),
+    FOREIGN KEY (Date_ID) REFERENCES Dim_Date(Date_ID)
+);
+
+INSERT INTO Dim_Customer VALUES
+(1,'Rahul','Pune','Maharashtra'),
+(2,'Sneha','Mumbai','Maharashtra'),
+(3,'Amit','Ahmedabad','Gujarat');
+INSERT INTO Dim_Product VALUES
+(1,'Laptop','Electronics','Dell'),
+(2,'Phone','Electronics','Samsung'),
+(3,'Shirt','Clothing','Levis');
+INSERT INTO Dim_Date VALUES
+(1,'2026-01-15','January',2026),
+(2,'2026-02-10','February',2026);
+INSERT INTO Fact_Sales VALUES
+(1,1,1,1,1,55000.00),
+(2,2,2,1,2,40000.00),
+(3,3,3,2,3,3000.00),
+(4,1,2,2,1,20000.00);
+
+-- Query: total sales by state and category
+SELECT c.State, p.Category, SUM(f.Amount) AS Total_Sales
+FROM Fact_Sales f
+JOIN Dim_Customer c ON f.Customer_ID = c.Customer_ID
+
+JOIN Dim_Product p ON f.Product_ID = p.Product_ID
+GROUP BY c.State, p.Category;
+
+B. Snowflake Schema
+CREATE DATABASE snowflake_schema;
+USE snowflake_schema;
+
+-- Outer (normalized) tables
+CREATE TABLE Dim_State (
+   State_ID INT PRIMARY KEY,
+   State_Name VARCHAR(50)
+);
+
+CREATE TABLE Dim_City (
+   City_ID INT PRIMARY KEY,
+   City_Name VARCHAR(50),
+   State_ID INT,
+   FOREIGN KEY (State_ID) REFERENCES Dim_State(State_ID)
+);
+
+CREATE TABLE Dim_Category (
+   Category_ID INT PRIMARY KEY,
+   Category_Name VARCHAR(50)
+);
+
+CREATE TABLE Dim_Month (
+   Month_ID INT PRIMARY KEY,
+   Month_Name VARCHAR(20),
+   Year INT
+);
+
+-- Dimension tables linked to the outer tables
+CREATE TABLE Dim_Customer (
+   Customer_ID INT PRIMARY KEY,
+   Customer_Name VARCHAR(50),
+   City_ID INT,
+   FOREIGN KEY (City_ID) REFERENCES Dim_City(City_ID)
+);
+
+CREATE TABLE Dim_Product (
+   Product_ID INT PRIMARY KEY,
+   Product_Name VARCHAR(50),
+   Brand VARCHAR(50),
+   Category_ID INT,
+   FOREIGN KEY (Category_ID) REFERENCES Dim_Category(Category_ID)
+);
+
+CREATE TABLE Dim_Date (
+   Date_ID INT PRIMARY KEY,
+   Full_Date DATE,
+   Month_ID INT,
+   FOREIGN KEY (Month_ID) REFERENCES Dim_Month(Month_ID)
+);
+
+-- Fact table
+CREATE TABLE Fact_Sales (
+   Sale_ID INT PRIMARY KEY,
+   Customer_ID INT,
+   Product_ID INT,
+   Date_ID INT,
+   Quantity INT,
+   Amount DECIMAL(10,2),
+   FOREIGN KEY (Customer_ID) REFERENCES Dim_Customer(Customer_ID),
+   FOREIGN KEY (Product_ID) REFERENCES Dim_Product(Product_ID),
+   FOREIGN KEY (Date_ID) REFERENCES Dim_Date(Date_ID)
+);
+
+INSERT INTO Dim_State VALUES (1,'Maharashtra'),(2,'Gujarat');
+INSERT INTO Dim_City VALUES (1,'Pune',1),(2,'Mumbai',1),(3,'Ahmedabad',2);
+INSERT INTO Dim_Category VALUES (1,'Electronics'),(2,'Clothing');
+INSERT INTO Dim_Month VALUES (1,'January',2026),(2,'February',2026);
+INSERT INTO Dim_Customer VALUES (1,'Rahul',1),(2,'Sneha',2),(3,'Amit',3);
+INSERT INTO Dim_Product VALUES (1,'Laptop','Dell',1),(2,'Phone','Samsung',1),(3,'Shirt','Levis',2);
+INSERT INTO Dim_Date VALUES (1,'2026-01-15',1),(2,'2026-02-10',2);
+INSERT INTO Fact_Sales VALUES
+(1,1,1,1,1,55000.00),
+(2,2,2,1,2,40000.00),
+(3,3,3,2,3,3000.00),
+(4,1,2,2,1,20000.00);
+
+-- Query: total sales by state and category (more joins than star)
+SELECT s.State_Name, cat.Category_Name, SUM(f.Amount) AS Total_Sales
+FROM Fact_Sales f
+JOIN Dim_Customer c ON f.Customer_ID = c.Customer_ID
+JOIN Dim_City ci ON c.City_ID = ci.City_ID
+JOIN Dim_State s ON ci.State_ID = s.State_ID
+JOIN Dim_Product p ON f.Product_ID = p.Product_ID
+JOIN Dim_Category cat ON p.Category_ID = cat.Category_ID
+GROUP BY s.State_Name, cat.Category_Name;
+
+C. Schema Diagram (Star and Snowflake)
+
+Left: Star Schema (Fact_Sales with 3 denormalized dimensions).
+Right: Snowflake Schema (dimensions split into City, State, Category, Month).
+
+D. Mermaid Code: Star Schema
+
+erDiagram
+    Dim_Customer ||--o{ Fact_Sales : "who bought"
+    Dim_Product ||--o{ Fact_Sales : "what was sold"
+    Dim_Date     ||--o{ Fact_Sales : "when"
+
+     Fact_Sales {
+         int sales_id PK
+         int customer_id FK
+         int product_id FK
+         int date_id FK
+         decimal amount
+     }
+     Dim_Customer {
+         int customer_id PK
+         string name
+         string city
+         string state
+     }
+     Dim_Product {
+         int product_id PK
+         string product_name
+         string category
+         string brand
+     }
+     Dim_Date {
+         int date_id PK
+         date order_date
+         int month
+         int year
+     }
+
+Paste into mermaid.live or any Mermaid viewer to draw the diagram.
+
+E. Mermaid Code: Snowflake Schema
+
+erDiagram
+   Dim_Customer ||--o{ Fact_Sales : ""
+   Dim_Product ||--o{ Fact_Sales : ""
+   Dim_Date     ||--o{ Fact_Sales : ""
+   Dim_City     ||--o{ Dim_Customer : ""
+   Dim_State    ||--o{ Dim_City : ""
+   Dim_Category ||--o{ Dim_Product : ""
+   Dim_Month    ||--o{ Dim_Date : ""
+
+  Fact_Sales {
+      int sales_id PK
+      int customer_id FK
+      int product_id FK
+      int date_id FK
+      decimal amount
+  }
+  Dim_Customer {
+      int customer_id PK
+      string name
+      int city_id FK
+  }
+  Dim_City {
+      int city_id PK
+      string city_name
+      int state_id FK
+  }
+  Dim_State {
+      int state_id PK
+      string state_name
+  }
+  Dim_Product {
+      int product_id PK
+      string product_name
+      int category_id FK
+  }
+  Dim_Category {
+      int category_id PK
+      string category_name
+  }
+  Dim_Date {
+      int date_id PK
+      date order_date
+      int month_id FK
+  }
+  Dim_Month {
+      int month_id PK
+      int month
+      int year
+  }
+
+
+======================================================================
+Q. 6. Consider a STUDENT_RESULT table with columns Student_ID,
+Student_Name, Subject, Marks and Semester. Write SQL queries to (a) display all
+student result records, (b) calculate the average marks, and (c) display the average
+marks subject-wise. Briefly explain the role of OLAP in analysing academic
+performance data.
+Create table and insert data
+SQL:
+  CREATE TABLE STUDENT_RESULT (
+      Student_ID INT,
+      Student_Name VARCHAR(30),
+      Subject VARCHAR(20),
+      Marks INT,
+      Semester INT
+  );
+
+  INSERT INTO STUDENT_RESULT VALUES
+  (1, 'Ravi', 'DBMS', 78, 5),
+  (2, 'Priya', 'DBMS', 85, 5),
+  (3, 'Amit', 'DBMS', 69, 5),
+  (1, 'Ravi', 'TOC', 72, 5),
+  (2, 'Priya', 'TOC', 90, 5),
+  (3, 'Amit', 'TOC', 64, 5),
+  (1, 'Ravi', 'ML', 81, 5),
+  (2, 'Priya', 'ML', 88, 5);
+
+(a) Display all records
+  SELECT * FROM STUDENT_RESULT;
+
+Output:
+  +------------+--------------+---------+-------+----------+
+  | Student_ID | Student_Name | Subject | Marks | Semester |
+  +------------+--------------+---------+-------+----------+
+  | 1           | Ravi        | DBMS    | 78    | 5        |
+  | 2           | Priya       | DBMS    | 85    | 5        |
+  | 3           | Amit        | DBMS    | 69    | 5        |
+  | 1           | Ravi        | TOC     | 72    | 5        |
+  | 2           | Priya       | TOC     | 90    | 5        |
+  | 3           | Amit        | TOC     | 64    | 5        |
+  | 1           | Ravi        | ML      | 81    | 5        |
+  | 2           | Priya       | ML      | 88    | 5        |
+  +------------+--------------+---------+-------+----------+
+  8 rows in set
+
+(b) Average marks
+  SELECT AVG(Marks) AS Average_Marks FROM STUDENT_RESULT;
+
+Output:
+  +---------------+
+  | Average_Marks |
+  +---------------+
+  | 78.3750       |
+  +---------------+
+  1 row in set
+
+(c) Average marks subject-wise
+  SELECT Subject, AVG(Marks) AS Average_Marks
+  FROM STUDENT_RESULT
+  GROUP BY Subject;
+
+Output:
+  +---------+---------------+
+  | Subject | Average_Marks |
+  +---------+---------------+
+  | DBMS    | 77.3333       |
+  | TOC     | 75.3333       |
+  | ML      | 84.5000       |
+  +---------+---------------+
+  3 rows in set
+
+Role of OLAP
+OLAP (Online Analytical Processing) helps analyse academic performance across many views at
+once. Marks are the measure, and subject, student, semester and department are the dimensions.
+ - Roll-up: summarise to a higher level (subject averages to semester or department averages).
+ - Drill-down: go from totals to detail (from semester average down to subject, then to a single
+   student).
+ - Slice and dice: pick one value or a sub-cube of the data (only the DBMS subject (slice), or DBMS
+   and TOC for semester 5 (dice)).
+ - Pivot: rotate the view to compare two dimensions side by side.
+ - OLAP gives fast answers on large historical data, so decision makers can see trends without
+   writing complex queries.
+Conclusion: simple SQL (SELECT, aggregate functions, GROUP BY) gives the required reports,
+and OLAP lets us analyse the same data from many angles.
+
+
+======================================================================
+Q. 7. Explain the Star Schema with a suitable example of a sales or university
+database. Identify the fact table and any three dimension tables.
+Definition
+A star schema is the simplest data warehouse design. It has one central fact table that stores
+measurable values (quantity, amount) and foreign keys, surrounded by dimension tables that
+describe the facts (who, what, when). Drawn out, the fact table is in the centre and the dimensions
+around it, like a star.
+
+Example: Sales database
+Fact table: Fact_Sales. Dimension tables: Dim_Product, Dim_Store, Dim_Date.
+Star schema diagram:
+      [     Dim_Product      ]       [           Dim_Date        ]
+               \                            /
+                 +------------------+
+                 |     Fact_Sales    |
+                 +------------------+
+                           |
+                     [     Dim_Store         ]
+
+Fact table: Fact_Sales
+  Column                        Type                     Meaning
+  Sale_ID                       INT (PK)                 Unique id of each sale
+  Product_ID                    INT (FK)                 Links to Dim_Product
+  Store_ID                      INT (FK)                 Links to Dim_Store
+  Date_ID                       INT (FK)                 Links to Dim_Date
+  Quantity                      INT                      Measure: units sold
+  Amount                        DECIMAL(10,2)            Measure: sale value
+
+Dimension table: Dim_Product
+  Column                        Type                     Meaning
+  Product_ID                    INT (PK)                 Surrogate key
+  Product_Name                  VARCHAR(30)              Product name
+  Category                      VARCHAR(20)              Category
+  Brand                         VARCHAR(20)              Brand
+
+Sample rows:
+  +------------+--------------+-------------+----------+
+  | Product_ID | Product_Name | Category    | Brand    |
+  +------------+--------------+-------------+----------+
+  | 1          | Laptop       | Electronics | Dell     |
+  | 2          | Mouse        | Electronics | Logitech |
+  | 3          | Chair        | Furniture   | Godrej   |
+  +------------+--------------+-------------+----------+
+
+Dimension table: Dim_Store
+  Column                        Type                     Meaning
+  Store_ID                      INT (PK)                 Surrogate key
+  Store_Name                    VARCHAR(30)              Store name
+  City                          VARCHAR(20)              City
+  Region                        VARCHAR(20)              Region
+
+Sample rows:
+  +----------+------------+--------+--------+
+  | Store_ID | Store_Name | City   | Region |
+  +----------+------------+--------+--------+
+  | 1        | MegaMart   | Pune   | West   |
+  | 2        | CityStore | Mumbai | West    |
+  | 3        | ShopEasy   | Delhi | North |
+  +----------+------------+--------+--------+
+
+Dimension table: Dim_Date
+  Column                        Type                     Meaning
+  Date_ID                       INT (PK)                 Surrogate key
+  Full_Date                     DATE                     Calendar date
+  Month                         VARCHAR(10)              Month name
+  Year                          INT                      Year
+
+Sample rows:
+  +---------+------------+-----------+------+
+  | Date_ID | Full_Date | Month      | Year |
+  +---------+------------+-----------+------+
+  | 1       | 2026-08-05 | August    | 2026 |
+  | 2       | 2026-09-10 | September | 2026 |
+  | 3       | 2026-10-12 | October   | 2026 |
+  +---------+------------+-----------+------+
+
+Why star schema is useful
+ - Simple design, easy for business users to understand.
+ - Fast queries because only one join per dimension is needed.
+ - Works well with OLAP operations (roll-up, drill-down, slice and dice).
+ - Dimension tables can be reused across many fact tables.
+Conclusion: in the Sales star schema, Fact_Sales is the fact table and Dim_Product, Dim_Store,
+Dim_Date are the dimension tables joined to it by foreign keys.
+Sample fact rows: (1, Product 1, Store 1, Date 1, 2, 110000.00), (2, Product 2, Store 2, Date 2, 5,
+3500.00), (3, Product 3, Store 3, Date 3, 1, 4500.00).
+
+
+======================================================================
+Q. 8. Write minimum 10 complex queries on MongoDB collections using suitable
+query operators, projection, sorting and logical conditions.
+Collection used: company.employees (7 documents from Q3). Start with: use company
+
+Query 1: Comparison $gt with projection: salary above 50000
+  db.employees.find(
+    { salary: { $gt: 50000 } },
+    { _id: 0, name: 1, salary: 1 }
+  )
+
+Output:
+  { name: 'Ravi Patil', salary: 55000 }
+  { name: 'Amit Joshi', salary: 80000 }
+  { name: 'Rahul Deshmukh', salary: 60000 }
+  { name: 'Neha More', salary: 52000 }
+
+Query 2: Logical $and: IT employees earning 55000 or more
+  db.employees.find(
+    { $and: [ { department: 'IT' }, { salary: { $gte: 55000 } } ] },
+    { _id: 0, name: 1, department: 1, salary: 1 }
+  )
+
+Output:
+  { name: 'Ravi Patil', department: 'IT', salary: 55000 }
+  { name: 'Rahul Deshmukh', department: 'IT', salary: 60000 }
+
+Query 3: Logical $or: HR employees or Developers
+  db.employees.find(
+    { $or: [ { department: 'HR' }, { designation: 'Developer' } ] },
+    { _id: 0, name: 1, designation: 1, department: 1 }
+  )
+
+Output:
+  { name: 'Ravi Patil', designation: 'Developer', department: 'IT' }
+  { name: 'Amit Joshi', designation: 'Manager', department: 'HR' }
+  { name: 'Rahul Deshmukh', designation: 'Developer', department: 'IT' }
+  { name: 'Karan Singh', designation: 'Clerk', department: 'HR' }
+
+Query 4: Logical $nor: not in IT and not below 50000
+  db.employees.find(
+    { $nor: [ { department: 'IT' }, { salary: { $lt: 50000 } } ] },
+    { _id: 0, name: 1, department: 1, salary: 1 }
+  )
+
+Output:
+  { name: 'Amit Joshi', department: 'HR', salary: 80000 }
+  { name: 'Sneha Kulkarni', department: 'Finance', salary: 50000 }
+  { name: 'Neha More', department: 'Finance', salary: 52000 }
+
+Query 5: $in: designation is Developer or Analyst
+  db.employees.find(
+    { designation: { $in: ['Developer', 'Analyst'] } },
+    { _id: 0, name: 1, designation: 1 }
+  )
+
+Output:
+  { name: 'Ravi Patil', designation: 'Developer' }
+  { name: 'Rahul Deshmukh', designation: 'Developer' }
+  { name: 'Neha More', designation: 'Analyst' }
+
+Query 6: Projection that hides a field: Finance employees without contact
+  db.employees.find(
+    { department: 'Finance' },
+    { _id: 0, contact: 0, emp_id: 0 }
+  )
+
+Output:
+  {
+      name: 'Sneha Kulkarni',
+      designation: 'Accountant',
+      department: 'Finance',
+      salary: 50000
+  }
+  { name: 'Neha More', designation: 'Analyst', department: 'Finance', salary: 52000 }
+
+Query 7: sort() descending on salary
+  db.employees.find({}, { _id: 0, name: 1, salary: 1 })
+    .sort({ salary: -1 })
+
+Output:
+  { name: 'Amit Joshi', salary: 80000 }
+  { name: 'Rahul Deshmukh', salary: 60000 }
+  { name: 'Ravi Patil', salary: 55000 }
+  { name: 'Neha More', salary: 52000 }
+  { name: 'Sneha Kulkarni', salary: 50000 }
+  { name: 'Priya Shah', salary: 45000 }
+  { name: 'Karan Singh', salary: 30000 }
+
+Query 8: sort on two fields with skip() and limit()
+  db.employees.find({}, { _id: 0, name: 1, department: 1, salary: 1 })
+    .sort({ department: 1, salary: -1 })
+    .skip(2).limit(3)
+
+Output:
+  { name: 'Amit Joshi', department: 'HR', salary: 80000 }
+  { name: 'Karan Singh', department: 'HR', salary: 30000 }
+  { name: 'Rahul Deshmukh', department: 'IT', salary: 60000 }
+
+Query 9: $regex: names starting with R
+  db.employees.find(
+    { name: { $regex: '^R' } },
+    { _id: 0, name: 1 }
+  )
+
+Output:
+  { name: 'Ravi Patil' }
+  { name: 'Rahul Deshmukh' }
+
+Query 10: $exists on a nested field: employees without an email
+  db.employees.find(
+    { 'contact.email': { $exists: false } },
+    { _id: 0, name: 1, contact: 1 }
+  )
+
+Output:
+  { name: 'Karan Singh', contact: { phone: '9876500007' } }
+
+Query 11: countDocuments(): salary between 50000 and 60000
+  db.employees.countDocuments(
+    { salary: { $gte: 50000, $lte: 60000 } }
+  )
+
+Output:
+  4
+
+Query 12: Aggregation $group: employee count and total salary per department
+  db.employees.aggregate([
+    { $group: { _id: '$department',
+                employees: { $sum: 1 },
+                totalSalary: { $sum: '$salary' } } },
+    { $sort: { totalSalary: -1 } }
+  ])
+
+Output:
+  { _id: 'IT', employees: 3, totalSalary: 160000 }
+  { _id: 'HR', employees: 2, totalSalary: 110000 }
+  { _id: 'Finance', employees: 2, totalSalary: 102000 }
+
+Conclusion: comparison, logical, projection, sorting, regex, element and aggregation operators
+together let us build complex MongoDB queries on the employees collection.
+
+
