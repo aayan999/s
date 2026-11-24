@@ -1,0 +1,1305 @@
+######################################################################
+#  ADBMS END-SEM  -  SET 4
+######################################################################
+
+Department of Information Technology
+                              END-SEM EXAMINATION 2026-27 (Sem-V)
+                   ADVANCED DATABASE MANAGEMENT SYSTEM (ITPEC509A)
+                     Activity based Lab-work [Set-4] | Max Marks: 60 | Date: 25/11/26
+                                            Answers: Q1 to Q8
+Pattern: attempt (Q1 and Q2) OR (Q3 and Q4), then (Q5 and Q6) OR (Q7 and Q8). 15 marks each.
+Write one full group from each pair. All SQL and MongoDB outputs below are worked out by hand
+and not run on a live server, so run each script once in MySQL Workbench / mongosh before the
+exam.
+
+======================================================================
+Q. 1. Create a CUSTOMER table using range or hash partitioning based on
+customer city or customer ID. Perform DML operations such as INSERT, UPDATE
+and DELETE on the partitioned table. Retrieve and display records from each
+partition separately using suitable SQL queries. Explain how partitioning improves
+data management.
+Aim
+Create a CUSTOMER table partitioned by Customer_ID range, run INSERT, UPDATE and
+DELETE, and display the rows of each partition.
+
+Step 1: Create the partitioned table
+SQL:
+  CREATE DATABASE IF NOT EXISTS exam_db;
+  USE exam_db;
+
+  CREATE TABLE Customer (
+      Customer_ID INT NOT NULL,
+      Customer_Name VARCHAR(30),
+      City VARCHAR(20),
+      Phone VARCHAR(15),
+      PRIMARY KEY (Customer_ID)
+  )
+  PARTITION BY RANGE (Customer_ID) (
+      PARTITION p0 VALUES LESS THAN (1004),
+      PARTITION p1 VALUES LESS THAN (1007),
+      PARTITION p2 VALUES LESS THAN (MAXVALUE)
+  );
+
+Rule: in MySQL the partitioning column (Customer_ID) must be part of the PRIMARY KEY, so
+the key is (Customer_ID).
+
+Step 2: INSERT records
+SQL:
+  INSERT INTO Customer (Customer_ID, Customer_Name, City, Phone) VALUES
+  (1001, 'Ravi Patil', 'Pune', '9876500001'),
+  (1002, 'Priya Shah', 'Mumbai', '9876500002'),
+  (1003, 'Amit Joshi', 'Nashik', '9876500003'),
+  (1004, 'Sneha Kulkarni', 'Pune', '9876500004'),
+  (1005, 'Rahul Deshmukh', 'Nagpur', '9876500005'),
+  (1006, 'Neha More', 'Mumbai', '9876500006'),
+  (1007, 'Karan Singh', 'Delhi', '9876500007'),
+  (1008, 'Pooja Nair', 'Pune', '9876500008');
+
+Display all records:
+  SELECT * FROM Customer;
+
+Output:
+  +-------------+----------------+--------+------------+
+  | Customer_ID | Customer_Name | City    | Phone      |
+  +-------------+----------------+--------+------------+
+  | 1001        | Ravi Patil     | Pune   | 9876500001 |
+  | 1002        | Priya Shah     | Mumbai | 9876500002 |
+  | 1003        | Amit Joshi     | Nashik | 9876500003 |
+  | 1004        | Sneha Kulkarni | Pune   | 9876500004 |
+  | 1005        | Rahul Deshmukh | Nagpur | 9876500005 |
+  | 1006        | Neha More      | Mumbai | 9876500006 |
+  | 1007        | Karan Singh    | Delhi | 9876500007 |
+  | 1008        | Pooja Nair     | Pune   | 9876500008 |
+  +-------------+----------------+--------+------------+
+  8 rows in set
+
+Step 3: Display records from each partition separately
+Partition p0:
+  SELECT * FROM Customer PARTITION (p0);
+
+Output:
+  +-------------+---------------+--------+------------+
+  | Customer_ID | Customer_Name | City   | Phone      |
+  +-------------+---------------+--------+------------+
+  | 1001        | Ravi Patil    | Pune   | 9876500001 |
+  | 1002        | Priya Shah    | Mumbai | 9876500002 |
+  | 1003        | Amit Joshi    | Nashik | 9876500003 |
+  +-------------+---------------+--------+------------+
+  3 rows in set
+
+Partition p1:
+  SELECT * FROM Customer PARTITION (p1);
+
+Output:
+  +-------------+----------------+--------+------------+
+  | Customer_ID | Customer_Name | City    | Phone      |
+  +-------------+----------------+--------+------------+
+  | 1004        | Sneha Kulkarni | Pune   | 9876500004 |
+  | 1005        | Rahul Deshmukh | Nagpur | 9876500005 |
+  | 1006        | Neha More      | Mumbai | 9876500006 |
+  +-------------+----------------+--------+------------+
+  3 rows in set
+
+Partition p2:
+  SELECT * FROM Customer PARTITION (p2);
+
+Output:
+  +-------------+---------------+-------+------------+
+  | Customer_ID | Customer_Name | City | Phone       |
+  +-------------+---------------+-------+------------+
+  | 1007        | Karan Singh   | Delhi | 9876500007 |
+  | 1008        | Pooja Nair    | Pune | 9876500008 |
+  +-------------+---------------+-------+------------+
+  2 rows in set
+
+Step 4: UPDATE
+SQL:
+  UPDATE Customer SET City = 'Mumbai' WHERE Customer_ID = 1003;
+
+City is not the partitioning column, so Amit's row stays in partition p0. (Only a change of
+Customer_ID would move a row to another partition.)
+  SELECT * FROM Customer;
+
+Output:
+  +-------------+----------------+--------+------------+
+  | Customer_ID | Customer_Name | City    | Phone      |
+  +-------------+----------------+--------+------------+
+  | 1001        | Ravi Patil     | Pune   | 9876500001 |
+  | 1002        | Priya Shah     | Mumbai | 9876500002 |
+  | 1003        | Amit Joshi     | Mumbai | 9876500003 |
+  | 1004        | Sneha Kulkarni | Pune   | 9876500004 |
+  | 1005        | Rahul Deshmukh | Nagpur | 9876500005 |
+  | 1006        | Neha More      | Mumbai | 9876500006 |
+  | 1007        | Karan Singh    | Delhi | 9876500007 |
+  | 1008        | Pooja Nair     | Pune   | 9876500008 |
+  +-------------+----------------+--------+------------+
+  8 rows in set
+
+Step 5: DELETE
+SQL:
+  DELETE FROM Customer WHERE Customer_ID = 1006;
+
+  SELECT * FROM Customer;
+
+Output:
+  +-------------+----------------+--------+------------+
+  | Customer_ID | Customer_Name | City    | Phone      |
+  +-------------+----------------+--------+------------+
+  | 1001        | Ravi Patil     | Pune   | 9876500001 |
+  | 1002        | Priya Shah     | Mumbai | 9876500002 |
+  | 1003        | Amit Joshi     | Mumbai | 9876500003 |
+  | 1004        | Sneha Kulkarni | Pune   | 9876500004 |
+  | 1005        | Rahul Deshmukh | Nagpur | 9876500005 |
+  | 1007        | Karan Singh    | Delhi | 9876500007 |
+  | 1008        | Pooja Nair     | Pune   | 9876500008 |
+  +-------------+----------------+--------+------------+
+  7 rows in set
+
+Step 6: Check how many rows each partition holds
+  SELECT PARTITION_NAME, TABLE_ROWS
+  FROM INFORMATION_SCHEMA.PARTITIONS
+  WHERE TABLE_SCHEMA = 'exam_db' AND TABLE_NAME = 'Customer';
+
+Output:
+  +----------------+------------+
+  | PARTITION_NAME | TABLE_ROWS |
+  +----------------+------------+
+  | p0             | 3          |
+  | p1             | 2          |
+  | p2             | 2          |
+  +----------------+------------+
+  3 rows in set
+
+Working of partition-wise data storage
+ - Range partitioning on Customer_ID: p0 = IDs below 1004, p1 = 1004 to 1006, p2 = 1007 and
+   above.
+ - On INSERT, MySQL applies the rule to Customer_ID and stores the row in the matching partition
+   automatically.
+ - How partitioning improves data management:
+ - Faster queries: a query on a range of Customer_ID touches only the matching partition (partition
+   pruning).
+ - Easy maintenance: a partition can be backed up, repaired, optimised or dropped without touching
+   the others (ALTER TABLE Customer DROP PARTITION p0).
+ - Large tables become manageable: old customers can be archived by partition.
+ - Better performance and availability: smaller indexes, and work on one partition does not block
+   others.
+ - Partitioning by city: use LIST COLUMNS (City) with partitions such as ('Pune','Nashik'), or
+   HASH(Customer_ID) PARTITIONS 4 for even spread.
+Conclusion: partitioning splits one big table into smaller physical parts by a rule on a column. The
+user still writes normal queries on Customer, MySQL decides which partition stores each row, and
+queries that name a partition (or filter on Customer_ID) read only that part.
+
+
+======================================================================
+Q. 2. Explain distributed transactions with a simple ATM cash-withdrawal example
+involving account verification and balance update. Describe the purpose of
+COMMIT and ROLLBACK and explain the importance of transaction recovery.
+1. What is a distributed transaction?
+A distributed transaction is one logical unit of work that updates data on more than one database or
+server. All the parts must succeed together or all must fail, so that the data stays consistent. In an
+ATM withdrawal the bank account database and the ATM machine cash record are separate systems.
+
+2. Example: ATM cash withdrawal (account verification + balance update)
+ - Step 1, verification: the bank checks the account and that the balance is enough.
+ - Step 2, update: the bank deducts the amount from Account, and the ATM system deducts the
+   cash from ATM_Machine and writes a log entry.
+ - If the cash dispenser fails after the balance was reduced, the balance must be restored, otherwise
+   the customer loses money.
+
+3. Tables and sample data
+SQL:
+  CREATE TABLE Account (
+      Acc_No INT PRIMARY KEY,
+      Holder VARCHAR(30),
+      Balance INT
+  );
+  CREATE TABLE ATM_Machine (
+      ATM_ID         VARCHAR(5) PRIMARY KEY,
+      Cash_Available INT
+  );
+  CREATE TABLE Withdrawal_Log (
+      Log_ID INT AUTO_INCREMENT PRIMARY KEY,
+      Acc_No INT,
+      ATM_ID VARCHAR(5),
+      Amount INT
+  );
+  INSERT INTO Account VALUES (101,'Ravi',20000),(102,'Priya',8000);
+  INSERT INTO ATM_Machine VALUES ('ATM1',100000);
+
+  SELECT * FROM Account;
+
+Output:
+  +--------+--------+---------+
+  | Acc_No | Holder | Balance |
+  +--------+--------+---------+
+  | 101    | Ravi   | 20000   |
+  | 102    | Priya | 8000     |
+  +--------+--------+---------+
+  2 rows in set
+
+  SELECT * FROM ATM_Machine;
+
+Output:
+  +--------+----------------+
+  | ATM_ID | Cash_Available |
+  +--------+----------------+
+  | ATM1   | 100000         |
+  +--------+----------------+
+  1 row in set
+
+4. COMMIT: everything succeeds
+SQL:
+  START TRANSACTION;
+  -- account verification: balance must be enough
+  SELECT Balance FROM Account WHERE Acc_No = 101 FOR UPDATE;    -- 20000 >= 5000
+  UPDATE Account     SET Balance = Balance - 5000 WHERE Acc_No = 101;
+  UPDATE ATM_Machine SET Cash_Available = Cash_Available - 5000
+         WHERE ATM_ID = 'ATM1';
+  INSERT INTO Withdrawal_Log (Acc_No, ATM_ID, Amount) VALUES (101, 'ATM1', 5000);
+  COMMIT;
+
+COMMIT makes all changes of the transaction permanent and visible to other users.
+  SELECT * FROM Account;
+
+Output:
+  +--------+--------+---------+
+  | Acc_No | Holder | Balance |
+  +--------+--------+---------+
+  | 101    | Ravi   | 15000   |
+  | 102    | Priya | 8000     |
+  +--------+--------+---------+
+  2 rows in set
+
+  SELECT * FROM ATM_Machine;
+
+Output:
+  +--------+----------------+
+  | ATM_ID | Cash_Available |
+  +--------+----------------+
+  | ATM1   | 95000          |
+  +--------+----------------+
+  1 row in set
+
+  SELECT * FROM Withdrawal_Log;
+
+Output:
+  +--------+--------+--------+--------+
+  | Log_ID | Acc_No | ATM_ID | Amount |
+  +--------+--------+--------+--------+
+  | 1      | 101    | ATM1   | 5000   |
+  +--------+--------+--------+--------+
+  1 row in set
+
+5. ROLLBACK: something fails
+Priya withdraws 3000. Her balance is reduced, but the cash dispenser jams and no cash comes out.
+The balance update must be cancelled.
+SQL:
+  START TRANSACTION;
+  UPDATE Account SET Balance = Balance - 3000 WHERE Acc_No = 102;
+  -- cash dispenser fails here, so cancel everything
+  ROLLBACK;
+
+ROLLBACK cancels every change made since START TRANSACTION and restores the old
+values.
+
+  SELECT * FROM Account;
+
+Output:
+  +--------+--------+---------+
+  | Acc_No | Holder | Balance |
+  +--------+--------+---------+
+  | 101    | Ravi   | 15000   |
+  | 102    | Priya | 8000     |
+  +--------+--------+---------+
+  2 rows in set
+
+  SELECT * FROM ATM_Machine;
+
+Output:
+  +--------+----------------+
+  | ATM_ID | Cash_Available |
+  +--------+----------------+
+  | ATM1   | 95000          |
+  +--------+----------------+
+  1 row in set
+
+6. Two-Phase Commit (2PC) across two servers
+When the two tables live on different servers, a transaction manager uses 2PC. Phase 1 (prepare):
+every server does its work and replies YES or NO. Phase 2 (commit): if all say YES the manager
+sends COMMIT to all, otherwise ROLLBACK to all. In MySQL this is done with XA commands:
+SQL:
+  -- Branch 1: bank server
+  XA START 'bank1';
+  UPDATE Account SET Balance = Balance - 2000 WHERE Acc_No = 102;
+  XA END 'bank1';
+  XA PREPARE 'bank1';
+
+  -- Branch 2: ATM server
+  XA START 'atm1';
+  UPDATE ATM_Machine SET Cash_Available = Cash_Available - 2000 WHERE ATM_ID = 'ATM1';
+  INSERT INTO Withdrawal_Log (Acc_No, ATM_ID, Amount) VALUES (102, 'ATM1', 2000);
+  XA END 'atm1';
+  XA PREPARE 'atm1';
+
+  -- Phase 2: both said YES, so commit both
+  XA COMMIT 'bank1';
+  XA COMMIT 'atm1';
+
+Check prepared transactions (before the XA COMMIT lines):
+  XA RECOVER;
+
+Output:
+  +----------+--------------+--------------+-------+
+  | formatID | gtrid_length | bqual_length | data |
+  +----------+--------------+--------------+-------+
+  | 1        | 5            | 0            | bank1 |
+  | 1        | 4            | 0            | atm1 |
+  +----------+--------------+--------------+-------+
+  2 rows in set
+
+To cancel instead, use XA ROLLBACK 'branch_id'; in place of XA COMMIT.
+
+7. Why transaction recovery is required
+ - If the bank server crashes after the balance is reduced but before the cash is given, the customer
+   loses money. If the ATM gives cash but the balance update is lost, the bank loses money.
+ - The transaction log lets the DBMS redo committed work and undo unfinished work after a
+   restart.
+ - A prepared XA branch survives the crash. It is found with XA RECOVER and completed with
+   XA COMMIT or XA ROLLBACK.
+ - Recovery protects money-critical data: no lost updates, no half-finished withdrawals (atomicity,
+   consistency, durability).
+Conclusion: COMMIT saves all the changes of a successful transaction, ROLLBACK undoes them
+when any step fails, and recovery uses the log to bring the database back to a consistent state after a
+crash. Together they keep distributed data correct (atomicity and consistency).
+
+Step 1: Create database and collections
+  use hospital
+
+  db.createCollection('patients')                   // structured documents
+  db.createCollection('patients_flex')              // unstructured documents
+
+
+======================================================================
+Q. 3. Create a MongoDB database and suitable collections. Insert structured and
+unstructured JSON documents containing hospital details such as patient ID,
+patient name, age, department, doctor name and contact information. Perform
+suitable insert and display operations to retrieve and view all documents from the
+created collections.
+Output:
+  switched to db hospital
+  { ok: 1 }
+  { ok: 1 }
+
+Step 2: Insert structured documents (same fields)
+  db.patients.insertMany([
+    {
+       _id: 1,
+       patient_id: 'P101',
+       patient_name: 'Ravi Patil',
+       age: 45,
+       department: 'Cardiology',
+       doctor_name: 'Dr. Mehta',
+       contact: { phone: '9876500001', city: 'Pune' }
+    },
+    {
+       _id: 2,
+       patient_id: 'P102',
+       patient_name: 'Priya Shah',
+       age: 32,
+       department: 'Neurology',
+       doctor_name: 'Dr. Kulkarni',
+       contact: { phone: '9876500002', city: 'Mumbai' }
+    },
+    {
+       _id: 3,
+       patient_id: 'P103',
+       patient_name: 'Amit Joshi',
+       age: 60,
+       department: 'Cardiology',
+       doctor_name: 'Dr. Mehta',
+       contact: { phone: '9876500003', city: 'Nashik' }
+    },
+    {
+       _id: 4,
+       patient_id: 'P104',
+       patient_name: 'Sneha Rao',
+       age: 28,
+       department: 'Orthopedics',
+       doctor_name: 'Dr. Iyer',
+       contact: { phone: '9876500004', city: 'Pune' }
+    },
+    {
+       _id: 5,
+       patient_id: 'P105',
+       patient_name: 'Rahul Desai',
+       age: 52,
+       department: 'Neurology',
+       doctor_name: 'Dr. Kulkarni',
+       contact: { phone: '9876500005', city: 'Nagpur' }
+    },
+    {
+       _id: 6,
+       patient_id: 'P106',
+       patient_name: 'Neha More',
+       age: 19,
+       department: 'Pediatrics',
+       doctor_name: 'Dr. Shah',
+       contact: { phone: '9876500006', city: 'Pune' }
+    },
+    {
+       _id: 7,
+       patient_id: 'P107',
+       patient_name: 'Karan Singh',
+       age: 70,
+       department: 'Cardiology',
+       doctor_name: 'Dr. Mehta',
+       contact: { phone: '9876500007', city: 'Delhi' }
+    }
+  ]);
+
+Output:
+  {
+      acknowledged: true,
+      insertedIds: { '0': 1, '1': 2, '2': 3, '3': 4, '4': 5, '5': 6, '6': 7 }
+  }
+
+Step 3: Insert unstructured documents (different fields)
+  db.patients_flex.insertMany([
+    {
+       _id: 101,
+       patient_name: 'Walk-in Patient',
+       age: 25,
+       symptoms: ['fever', 'cough']
+    },
+    {
+       _id: 102,
+       patient_id: 'P201',
+       patient_name: 'Meera Nair',
+       department: 'Dermatology',
+       allergies: ['dust'],
+       insurance: { provider: 'Star Health', policy_no: 'SH123' }
+    },
+    {
+       _id: 103,
+       patient_name: 'Emergency Case',
+       department: 'Emergency',
+       admitted: true,
+       vitals: { bp: '120/80', pulse: 88 }
+    }
+  ]);
+
+Output:
+  {
+      acknowledged: true,
+      insertedIds: { '0': 101, '1': 102, '2': 103 }
+  }
+
+These documents do not follow one fixed layout: one has symptoms, one has allergies and insurance,
+one has vitals and an admitted flag. MongoDB stores them together without a schema.
+Output:
+
+  {
+      _id: 1,
+      patient_id: 'P101',
+      patient_name: 'Ravi Patil',
+      age: 45,
+      department: 'Cardiology',
+      doctor_name: 'Dr. Mehta',
+      contact: { phone: '9876500001', city: 'Pune' }
+  }
+  {
+      _id: 2,
+      patient_id: 'P102',
+      patient_name: 'Priya Shah',
+      age: 32,
+      department: 'Neurology',
+      doctor_name: 'Dr. Kulkarni',
+      contact: { phone: '9876500002', city: 'Mumbai' }
+  }
+  {
+      _id: 3,
+      patient_id: 'P103',
+      patient_name: 'Amit Joshi',
+      age: 60,
+      department: 'Cardiology',
+      doctor_name: 'Dr. Mehta',
+      contact: { phone: '9876500003', city: 'Nashik' }
+  }
+  {
+      _id: 4,
+      patient_id: 'P104',
+      patient_name: 'Sneha Rao',
+      age: 28,
+      department: 'Orthopedics',
+      doctor_name: 'Dr. Iyer',
+      contact: { phone: '9876500004', city: 'Pune' }
+  }
+  {
+      _id: 5,
+      patient_id: 'P105',
+      patient_name: 'Rahul Desai',
+      age: 52,
+      department: 'Neurology',
+      doctor_name: 'Dr. Kulkarni',
+      contact: { phone: '9876500005', city: 'Nagpur' }
+  }
+  {
+      _id: 6,
+      patient_id: 'P106',
+      patient_name: 'Neha More',
+      age: 19,
+      department: 'Pediatrics',
+      doctor_name: 'Dr. Shah',
+      contact: { phone: '9876500006', city: 'Pune' }
+  }
+  {
+      _id: 7,
+      patient_id: 'P107',
+      patient_name: 'Karan Singh',
+      age: 70,
+      department: 'Cardiology',
+      doctor_name: 'Dr. Mehta',
+      contact: { phone: '9876500007', city: 'Delhi' }
+  }
+
+Step 4: Display all documents
+  db.patients.find().pretty()
+
+  db.patients_flex.find().pretty()
+
+Output:
+  { _id: 101, patient_name: 'Walk-in Patient', age: 25, symptoms: ['fever', 'cough'] }
+  {
+    _id: 102,
+    patient_id: 'P201',
+    patient_name: 'Meera Nair',
+    department: 'Dermatology',
+    allergies: ['dust'],
+    insurance: { provider: 'Star Health', policy_no: 'SH123' }
+  }
+  {
+    _id: 103,
+    patient_name: 'Emergency Case',
+    department: 'Emergency',
+    admitted: true,
+    vitals: { bp: '120/80', pulse: 88 }
+  }
+
+  db.patients.countDocuments()
+  db.patients_flex.countDocuments()
+
+Output:
+  7
+  3
+
+Conclusion: insertMany() stores the patient documents and find() displays them. One MongoDB
+database holds both structured and unstructured hospital data.
+
+
+======================================================================
+Q. 4. Explain the MapReduce process with a simple example of calculating the
+number of patients in each hospital department. Also explain the basic features of
+Apache Cassandra and mention one application where it can be used.
+1. MapReduce process
+MapReduce is a programming model for processing large data in parallel. The work is split into three
+steps:
+ - Map: reads every document and emits a (key, value) pair. Here: (department, 1) for each patient.
+ - Shuffle / group: the system groups all values that have the same key.
+ - Reduce: adds up (or otherwise combines) the values of each key to give one final result per key.
+
+2. Example: number of patients in each department
+Collection patients has 7 documents. Each patient document has a department field, using the 7
+patients from Q3.
+  Step               Result
+  Map                (Cardiology, 1), (Neurology, 1), (Cardiology, 1), (Orthopedics, 1), (Neurology, 1),
+                     (Pediatrics, 1), (Cardiology, 1)
+  Shuffle            Cardiology: [1,1,1], Neurology: [1,1], Orthopedics: [1], Pediatrics: [1]
+  Reduce             Cardiology = 3, Neurology = 2, Orthopedics = 1, Pediatrics = 1
+
+MongoDB (mongosh):
+  var mapFn = function () {
+      emit(this.department, 1);
+  };
+
+  var reduceFn = function (key, values) {
+      return Array.sum(values);
+  };
+
+  db.patients.mapReduce(
+      mapFn,
+      reduceFn,
+      { out: 'count_by_department' }
+  );
+
+  db.count_by_department.find();
+
+Output:
+  { _id: 'Cardiology', value: 3 }
+  { _id: 'Neurology', value: 2 }
+  { _id: 'Orthopedics', value: 1 }
+  { _id: 'Pediatrics', value: 1 }
+
+The same result with the aggregation pipeline (newer, recommended way):
+
+     db.patients.aggregate([
+         { $group: { _id: '$department', total: { $sum: 1 } } },
+         { $sort: { _id: 1 } }
+     ]);
+
+Output:
+     { _id: 'Cardiology', total: 3 }
+     { _id: 'Neurology', total: 2 }
+     { _id: 'Orthopedics', total: 1 }
+     { _id: 'Pediatrics', total: 1 }
+
+3. Features of Apache Cassandra
+ - Distributed and decentralised: every node is equal (peer-to-peer ring), there is no master node,
+      so no single point of failure.
+ -    Highly available: data is copied to several nodes (replication factor), so the system keeps
+      working if a node or a data centre fails.
+ -    Linear scalability: add more nodes and read/write capacity grows in proportion.
+ -    Fast writes: writes go to a commit log and memtable first, so write throughput is very high.
+ -    Wide-column NoSQL store with CQL: data is stored in tables with rows and columns, and
+      queried with SQL-like Cassandra Query Language.
+ -    Tunable consistency: for each query you choose how many replicas must reply (ONE,
+      QUORUM, ALL).
+
+4. Real-world application
+Netflix stores viewing history and user activity in Cassandra. It needs huge write volumes, many data
+centres and no downtime. Other uses: messaging apps, IoT sensor data, order and product catalogues
+of online shops.
+Conclusion: MapReduce counts data in parallel with Map, Shuffle and Reduce, and Cassandra is a
+distributed, always-available NoSQL database used for large scale applications.
+
+Q5. Differentiate between Star Schema and Snowflake Schema
+with a suitable diagram or example. Write any four differences.
+Introduction
+A data warehouse stores data in a fact table (numeric measures such as amount and quantity)
+surrounded by dimension tables (descriptive data such as customer, product, date). The two common
+ways to arrange them are the Star Schema and the Snowflake Schema.
+
+Star Schema
+One central fact table is joined directly to dimension tables. Each dimension is denormalized: all its
+attributes sit in one table. The diagram looks like a star.
+
+Snowflake Schema
+A variation of the star schema in which the dimension tables are normalized into further sub-tables. The
+diagram branches out like a snowflake.
+
+Diagram (Sales example)
+STAR SCHEMA
+
+Dim_Customer                           Dim_Product
+(customer_id PK, name,                 (product_id PK, product_name,
+ city, state)                           category, brand)
+       \                                   /
+         \                               /
+           +-------- Fact_Sales ---------+
+           | sales_id PK                 |
+           | customer_id FK              |
+           | product_id FK               |
+           | date_id FK, amount          |
+           +-------------+---------------+
+                         |
+                    Dim_Date
+                    (date_id PK, order_date, month, year)
+
+SNOWFLAKE SCHEMA
+
+Dim_State -- Dim_City -- Dim_Customer        Dim_Category -- Dim_Product
+(state_id)   (city_id,   (customer_id,        (category_id)    (product_id,
+              state_id)   name, city_id)                        category_id)
+                               \                                 /
+                                 +-------- Fact_Sales --------+
+                                 | sales_id, customer_id,        |
+                                 | product_id, date_id, amount |
+                                 +-------------+---------------+
+                                                |
+                                   Dim_Date -- Dim_Month
+                                   (date_id,      (month_id, month,
+                                    month_id)      year)
+
+
+Four Differences
+No.    Star Schema                                        Snowflake Schema
+1      Dimension tables are denormalized (one table per   Dimension tables are normalized into sub-tables
+       dimension).                                        (Customer to City to State).
+2      Simple design, fewer tables, easy to understand.   Complex design, more tables, harder to
+                                                          understand.
+3      Fewer joins, so queries run faster.                More joins, so queries are slower.
+4      Data redundancy is high (city and state repeat).   Data redundancy is low, so storage is saved.
+5      Needs more storage space.                          Needs less storage space.
+6      Easy to maintain for reporting; harder to update   Easier to update a value once, but ETL and
+       repeated values.                                   maintenance are more complex.
+
+Any four of the above are enough for the answer.
+
+Example
+Star: Dim_Customer(customer_id, name, city, state). The city 'Pune' and state 'Maharashtra' repeat for
+every customer from Pune. A query for sales by state joins only Fact_Sales and Dim_Customer.
+Snowflake: Dim_Customer(customer_id, name, city_id) joins to Dim_City(city_id, city_name, state_id),
+which joins to Dim_State(state_id, state_name). 'Maharashtra' is stored once. A query for sales by state
+joins Fact_Sales, Dim_Customer, Dim_City and Dim_State.
+Fact table: Fact_Sales. Dimension tables: Dim_Customer, Dim_Product, Dim_Date (star); plus Dim_City,
+Dim_State, Dim_Category, Dim_Month (snowflake).
+
+Conclusion
+The star schema is simpler and faster for queries but stores repeated data. The snowflake schema saves
+space and keeps data consistent but needs more joins. The SQL code for both is in Sections A and B of
+this file.
+
+      Q5. Star Schema and Snowflake Schema in MySQL
+Fact table: Fact_Sales. Dimension tables: Dim_Customer, Dim_Product, Dim_Date (star); plus Dim_City,
+Dim_State, Dim_Category, Dim_Month (snowflake).
+
+A. Star Schema
+CREATE DATABASE star_schema;
+USE star_schema;
+
+-- Dimension tables (denormalized: everything in one table)
+CREATE TABLE Dim_Customer (
+    Customer_ID INT PRIMARY KEY,
+    Customer_Name VARCHAR(50),
+    City VARCHAR(50),
+    State VARCHAR(50)
+);
+
+CREATE TABLE Dim_Product (
+    Product_ID INT PRIMARY KEY,
+    Product_Name VARCHAR(50),
+    Category VARCHAR(50),
+    Brand VARCHAR(50)
+);
+
+CREATE TABLE Dim_Date (
+    Date_ID INT PRIMARY KEY,
+    Full_Date DATE,
+    Month VARCHAR(20),
+    Year INT
+);
+
+-- Fact table (center of the star)
+CREATE TABLE Fact_Sales (
+    Sale_ID INT PRIMARY KEY,
+    Customer_ID INT,
+    Product_ID INT,
+    Date_ID INT,
+    Quantity INT,
+    Amount DECIMAL(10,2),
+    FOREIGN KEY (Customer_ID) REFERENCES Dim_Customer(Customer_ID),
+    FOREIGN KEY (Product_ID) REFERENCES Dim_Product(Product_ID),
+    FOREIGN KEY (Date_ID) REFERENCES Dim_Date(Date_ID)
+);
+
+INSERT INTO Dim_Customer VALUES
+(1,'Rahul','Pune','Maharashtra'),
+(2,'Sneha','Mumbai','Maharashtra'),
+(3,'Amit','Ahmedabad','Gujarat');
+INSERT INTO Dim_Product VALUES
+(1,'Laptop','Electronics','Dell'),
+(2,'Phone','Electronics','Samsung'),
+(3,'Shirt','Clothing','Levis');
+INSERT INTO Dim_Date VALUES
+(1,'2026-01-15','January',2026),
+(2,'2026-02-10','February',2026);
+INSERT INTO Fact_Sales VALUES
+(1,1,1,1,1,55000.00),
+(2,2,2,1,2,40000.00),
+(3,3,3,2,3,3000.00),
+(4,1,2,2,1,20000.00);
+
+-- Query: total sales by state and category
+SELECT c.State, p.Category, SUM(f.Amount) AS Total_Sales
+FROM Fact_Sales f
+JOIN Dim_Customer c ON f.Customer_ID = c.Customer_ID
+
+JOIN Dim_Product p ON f.Product_ID = p.Product_ID
+GROUP BY c.State, p.Category;
+
+B. Snowflake Schema
+CREATE DATABASE snowflake_schema;
+USE snowflake_schema;
+
+-- Outer (normalized) tables
+CREATE TABLE Dim_State (
+   State_ID INT PRIMARY KEY,
+   State_Name VARCHAR(50)
+);
+
+CREATE TABLE Dim_City (
+   City_ID INT PRIMARY KEY,
+   City_Name VARCHAR(50),
+   State_ID INT,
+   FOREIGN KEY (State_ID) REFERENCES Dim_State(State_ID)
+);
+
+CREATE TABLE Dim_Category (
+   Category_ID INT PRIMARY KEY,
+   Category_Name VARCHAR(50)
+);
+
+CREATE TABLE Dim_Month (
+   Month_ID INT PRIMARY KEY,
+   Month_Name VARCHAR(20),
+   Year INT
+);
+
+-- Dimension tables linked to the outer tables
+CREATE TABLE Dim_Customer (
+   Customer_ID INT PRIMARY KEY,
+   Customer_Name VARCHAR(50),
+   City_ID INT,
+   FOREIGN KEY (City_ID) REFERENCES Dim_City(City_ID)
+);
+
+CREATE TABLE Dim_Product (
+   Product_ID INT PRIMARY KEY,
+   Product_Name VARCHAR(50),
+   Brand VARCHAR(50),
+   Category_ID INT,
+   FOREIGN KEY (Category_ID) REFERENCES Dim_Category(Category_ID)
+);
+
+CREATE TABLE Dim_Date (
+   Date_ID INT PRIMARY KEY,
+   Full_Date DATE,
+   Month_ID INT,
+   FOREIGN KEY (Month_ID) REFERENCES Dim_Month(Month_ID)
+);
+
+-- Fact table
+CREATE TABLE Fact_Sales (
+   Sale_ID INT PRIMARY KEY,
+   Customer_ID INT,
+   Product_ID INT,
+   Date_ID INT,
+   Quantity INT,
+   Amount DECIMAL(10,2),
+   FOREIGN KEY (Customer_ID) REFERENCES Dim_Customer(Customer_ID),
+   FOREIGN KEY (Product_ID) REFERENCES Dim_Product(Product_ID),
+   FOREIGN KEY (Date_ID) REFERENCES Dim_Date(Date_ID)
+);
+
+INSERT INTO Dim_State VALUES (1,'Maharashtra'),(2,'Gujarat');
+INSERT INTO Dim_City VALUES (1,'Pune',1),(2,'Mumbai',1),(3,'Ahmedabad',2);
+INSERT INTO Dim_Category VALUES (1,'Electronics'),(2,'Clothing');
+INSERT INTO Dim_Month VALUES (1,'January',2026),(2,'February',2026);
+INSERT INTO Dim_Customer VALUES (1,'Rahul',1),(2,'Sneha',2),(3,'Amit',3);
+INSERT INTO Dim_Product VALUES (1,'Laptop','Dell',1),(2,'Phone','Samsung',1),(3,'Shirt','Levis',2);
+INSERT INTO Dim_Date VALUES (1,'2026-01-15',1),(2,'2026-02-10',2);
+INSERT INTO Fact_Sales VALUES
+(1,1,1,1,1,55000.00),
+(2,2,2,1,2,40000.00),
+(3,3,3,2,3,3000.00),
+(4,1,2,2,1,20000.00);
+
+-- Query: total sales by state and category (more joins than star)
+SELECT s.State_Name, cat.Category_Name, SUM(f.Amount) AS Total_Sales
+FROM Fact_Sales f
+JOIN Dim_Customer c ON f.Customer_ID = c.Customer_ID
+JOIN Dim_City ci ON c.City_ID = ci.City_ID
+JOIN Dim_State s ON ci.State_ID = s.State_ID
+JOIN Dim_Product p ON f.Product_ID = p.Product_ID
+JOIN Dim_Category cat ON p.Category_ID = cat.Category_ID
+GROUP BY s.State_Name, cat.Category_Name;
+
+C. Schema Diagram (Star and Snowflake)
+
+Left: Star Schema (Fact_Sales with 3 denormalized dimensions).
+Right: Snowflake Schema (dimensions split into City, State, Category, Month).
+
+D. Mermaid Code: Star Schema
+
+erDiagram
+    Dim_Customer ||--o{ Fact_Sales : "who bought"
+    Dim_Product ||--o{ Fact_Sales : "what was sold"
+    Dim_Date     ||--o{ Fact_Sales : "when"
+
+     Fact_Sales {
+         int sales_id PK
+         int customer_id FK
+         int product_id FK
+         int date_id FK
+         decimal amount
+     }
+     Dim_Customer {
+         int customer_id PK
+         string name
+         string city
+         string state
+     }
+     Dim_Product {
+         int product_id PK
+         string product_name
+         string category
+         string brand
+     }
+     Dim_Date {
+         int date_id PK
+         date order_date
+         int month
+         int year
+     }
+
+Paste into mermaid.live or any Mermaid viewer to draw the diagram.
+
+E. Mermaid Code: Snowflake Schema
+
+erDiagram
+   Dim_Customer ||--o{ Fact_Sales : ""
+   Dim_Product ||--o{ Fact_Sales : ""
+   Dim_Date     ||--o{ Fact_Sales : ""
+   Dim_City     ||--o{ Dim_Customer : ""
+   Dim_State    ||--o{ Dim_City : ""
+   Dim_Category ||--o{ Dim_Product : ""
+   Dim_Month    ||--o{ Dim_Date : ""
+
+  Fact_Sales {
+      int sales_id PK
+      int customer_id FK
+      int product_id FK
+      int date_id FK
+      decimal amount
+  }
+  Dim_Customer {
+      int customer_id PK
+      string name
+      int city_id FK
+  }
+  Dim_City {
+      int city_id PK
+      string city_name
+      int state_id FK
+  }
+  Dim_State {
+      int state_id PK
+      string state_name
+  }
+  Dim_Product {
+      int product_id PK
+      string product_name
+      int category_id FK
+  }
+  Dim_Category {
+      int category_id PK
+      string category_name
+  }
+  Dim_Date {
+      int date_id PK
+      date order_date
+      int month_id FK
+  }
+  Dim_Month {
+      int month_id PK
+      int month
+      int year
+  }
+
+
+======================================================================
+Q. 6. Consider a STUDENT table with columns Roll_No, Student_Name,
+Department, City and Marks. Write SQL queries to (a) display all student records,
+(b) find the maximum marks, and (c) display the average marks department-wise.
+Briefly explain how OLAP supports multidimensional analysis of student data.
+Create table and insert data
+SQL:
+  CREATE TABLE STUDENT (
+      Roll_No INT PRIMARY KEY,
+      Student_Name VARCHAR(30),
+      Department VARCHAR(10),
+      City VARCHAR(20),
+      Marks INT
+  );
+
+  INSERT INTO STUDENT VALUES
+  (1, 'Ravi', 'IT', 'Pune', 78),
+  (2, 'Priya', 'CS', 'Mumbai', 92),
+  (3, 'Amit', 'IT', 'Nashik', 66),
+  (4, 'Sneha', 'CS', 'Pune', 85),
+  (5, 'Rahul', 'ENTC', 'Nagpur', 71),
+  (6, 'Neha', 'IT', 'Mumbai', 88),
+  (7, 'Karan', 'ENTC', 'Delhi', 59);
+
+(a) Display all records
+  SELECT * FROM STUDENT;
+
+Output:
+  +---------+--------------+------------+--------+-------+
+  | Roll_No | Student_Name | Department | City   | Marks |
+  +---------+--------------+------------+--------+-------+
+  | 1       | Ravi         | IT         | Pune   | 78    |
+  | 2       | Priya        | CS         | Mumbai | 92    |
+  | 3       | Amit         | IT         | Nashik | 66    |
+  | 4       | Sneha        | CS         | Pune   | 85    |
+  | 5       | Rahul        | ENTC       | Nagpur | 71    |
+  | 6       | Neha         | IT         | Mumbai | 88    |
+  | 7       | Karan        | ENTC       | Delhi | 59     |
+  +---------+--------------+------------+--------+-------+
+  7 rows in set
+
+(b) Maximum marks
+  SELECT MAX(Marks) AS Maximum_Marks FROM STUDENT;
+
+Output:
+  +---------------+
+  | Maximum_Marks |
+  +---------------+
+  | 92            |
+  +---------------+
+  1 row in set
+
+(c) Average marks department-wise
+  SELECT Department, AVG(Marks) AS Average_Marks
+  FROM STUDENT
+  GROUP BY Department;
+
+Output:
+  +------------+---------------+
+  | Department | Average_Marks |
+  +------------+---------------+
+  | IT          | 77.3333      |
+  | CS          | 88.5000      |
+  | ENTC        | 65.0000      |
+  +------------+---------------+
+  3 rows in set
+
+Role of OLAP
+OLAP (Online Analytical Processing) supports multidimensional analysis: student marks (the
+measure) can be viewed along several dimensions at the same time, such as department, city and time
+(semester).
+ - Roll-up: summarise to a higher level (city-wise averages to state-wise, or department averages to
+   college average).
+ - Drill-down: go from totals to detail (from college average down to department, then to a single
+   student).
+ - Slice and dice: pick one value or a sub-cube of the data (only the IT department (slice), or IT and
+   CS students from Pune and Mumbai (dice)).
+ - Pivot: rotate the view to compare two dimensions side by side.
+ - OLAP gives fast answers on large historical data, so decision makers can see trends without
+   writing complex queries.
+Conclusion: simple SQL (SELECT, aggregate functions, GROUP BY) gives the required reports,
+and OLAP lets us analyse the same data from many angles.
+
+
+======================================================================
+Q. 7. Explain the Star Schema with a suitable example of an e-commerce or college
+database. Identify the fact table and any three dimension tables.
+Definition
+A star schema is the simplest data warehouse design. It has one central fact table that stores
+measurable values (quantity, amount) and foreign keys, surrounded by dimension tables that
+describe the facts (who, what, when). Drawn out, the fact table is in the centre and the dimensions
+around it, like a star.
+
+Example: E-commerce database
+Fact table: Fact_Orders. Dimension tables: Dim_Product, Dim_Customer, Dim_Date.
+Star schema diagram:
+      [    Dim_Product     ]       [             Dim_Date        ]
+              \                             /
+                +------------------+
+                |   Fact_Orders    |
+                +------------------+
+                         |
+                    [   Dim_Customer         ]
+
+Fact table: Fact_Orders
+  Column                        Type                     Meaning
+  Order_ID                      INT (PK)                 Unique id of each order line
+  Product_ID                    INT (FK)                 Links to Dim_Product
+  Customer_ID                   INT (FK)                 Links to Dim_Customer
+  Date_ID                       INT (FK)                 Links to Dim_Date
+  Quantity                      INT                      Measure: units ordered
+  Order_Amount                  DECIMAL(10,2)            Measure: order value
+
+Dimension table: Dim_Product
+  Column                        Type                     Meaning
+  Product_ID                    INT (PK)                 Surrogate key
+  Product_Name                  VARCHAR(30)              Product name
+  Category                      VARCHAR(20)              Category
+  Brand                         VARCHAR(20)              Brand
+
+Sample rows:
+  +------------+--------------+-------------+---------+
+  | Product_ID | Product_Name | Category    | Brand   |
+  +------------+--------------+-------------+---------+
+  | 1          | Smartphone   | Electronics | Samsung |
+  | 2          | Jeans        | Clothing    | Levis   |
+  | 3          | Novel        | Books       | Penguin |
+  +------------+--------------+-------------+---------+
+
+Dimension table: Dim_Customer
+  Column                        Type                     Meaning
+  Customer_ID                   INT (PK)                 Surrogate key
+  Customer_Name                 VARCHAR(30)              Customer name
+  City                          VARCHAR(20)              City
+  State                         VARCHAR(20)              State
+
+Sample rows:
+  +-------------+---------------+--------+-------------+
+  | Customer_ID | Customer_Name | City   | State       |
+  +-------------+---------------+--------+-------------+
+  | 1           | Ravi Patil    | Pune   | Maharashtra |
+  | 2           | Priya Shah    | Mumbai | Maharashtra |
+  | 3           | Karan Singh   | Delhi | Delhi        |
+  +-------------+---------------+--------+-------------+
+
+Dimension table: Dim_Date
+  Column                        Type                     Meaning
+  Date_ID                       INT (PK)                 Surrogate key
+  Full_Date                     DATE                     Calendar date
+  Month                         VARCHAR(10)              Month name
+  Year                          INT                      Year
+
+Sample rows:
+  +---------+------------+-----------+------+
+  | Date_ID | Full_Date | Month      | Year |
+  +---------+------------+-----------+------+
+  | 1       | 2026-08-05 | August    | 2026 |
+  | 2       | 2026-09-10 | September | 2026 |
+  | 3       | 2026-10-12 | October   | 2026 |
+  +---------+------------+-----------+------+
+
+Why star schema is useful
+ - Simple design, easy for business users to understand.
+ - Fast queries because only one join per dimension is needed.
+ - Works well with OLAP operations (roll-up, drill-down, slice and dice).
+ - Dimension tables can be reused across many fact tables.
+Conclusion: in the E-commerce star schema, Fact_Orders is the fact table and Dim_Product,
+Dim_Customer, Dim_Date are the dimension tables joined to it by foreign keys.
+Sample fact rows: (1, Product 1, Customer 1, Date 1, 1, 18000.00), (2, Product 2, Customer 2, Date 2,
+2, 3200.00), (3, Product 3, Customer 3, Date 3, 3, 900.00).
+
+
+======================================================================
+Q. 8. Write minimum 10 complex queries on MongoDB collections using suitable
+operators and query conditions to retrieve, filter and sort documents.
+Collection used: hospital.patients (7 documents from Q3). Start with: use hospital
+
+Query 1: Comparison $gt: patients older than 50
+  db.patients.find(
+    { age: { $gt: 50 } },
+    { _id: 0, patient_name: 1, age: 1 }
+  )
+
+Output:
+  { patient_name: 'Amit Joshi', age: 60 }
+  { patient_name: 'Rahul Desai', age: 52 }
+  { patient_name: 'Karan Singh', age: 70 }
+
+Query 2: $gte and $lte: age from 30 to 60
+  db.patients.find(
+    { age: { $gte: 30, $lte: 60 } },
+    { _id: 0, patient_name: 1, age: 1 }
+  )
+
+Output:
+  { patient_name: 'Ravi Patil', age: 45 }
+  { patient_name: 'Priya Shah', age: 32 }
+  { patient_name: 'Amit Joshi', age: 60 }
+  { patient_name: 'Rahul Desai', age: 52 }
+
+Query 3: $in: Cardiology or Neurology patients
+  db.patients.find(
+    { department: { $in: ['Cardiology', 'Neurology'] } },
+    { _id: 0, patient_name: 1, department: 1 }
+  )
+
+Output:
+  { patient_name: 'Ravi Patil', department: 'Cardiology' }
+  { patient_name: 'Priya Shah', department: 'Neurology' }
+  { patient_name: 'Amit Joshi', department: 'Cardiology' }
+  { patient_name: 'Rahul Desai', department: 'Neurology' }
+  { patient_name: 'Karan Singh', department: 'Cardiology' }
+
+Query 4: Logical $and: Cardiology patients younger than 65
+  db.patients.find(
+    { $and: [ { department: 'Cardiology' }, { age: { $lt: 65 } } ] },
+    { _id: 0, patient_name: 1, age: 1, doctor_name: 1 }
+  )
+
+Output:
+  { patient_name: 'Ravi Patil', age: 45, doctor_name: 'Dr. Mehta' }
+  { patient_name: 'Amit Joshi', age: 60, doctor_name: 'Dr. Mehta' }
+
+Query 5: Logical $or: Pediatrics patients or age above 65
+  db.patients.find(
+    { $or: [ { department: 'Pediatrics' }, { age: { $gt: 65 } } ] },
+    { _id: 0, patient_name: 1, department: 1, age: 1 }
+  )
+
+Output:
+  { patient_name: 'Neha More', age: 19, department: 'Pediatrics' }
+  { patient_name: 'Karan Singh', age: 70, department: 'Cardiology' }
+
+Query 6: $ne with sort: not Cardiology, youngest first
+  db.patients.find(
+    { department: { $ne: 'Cardiology' } },
+    { _id: 0, patient_name: 1, department: 1, age: 1 }
+  ).sort({ age: 1 })
+
+Output:
+  { patient_name: 'Neha More', age: 19, department: 'Pediatrics' }
+  { patient_name: 'Sneha Rao', age: 28, department: 'Orthopedics' }
+  { patient_name: 'Priya Shah', age: 32, department: 'Neurology' }
+  { patient_name: 'Rahul Desai', age: 52, department: 'Neurology' }
+
+Query 7: sort() descending with limit(): 3 oldest patients
+  db.patients.find({}, { _id: 0, patient_name: 1, age: 1 })
+    .sort({ age: -1 }).limit(3)
+
+Output:
+  { patient_name: 'Karan Singh', age: 70 }
+  { patient_name: 'Amit Joshi', age: 60 }
+  { patient_name: 'Rahul Desai', age: 52 }
+
+Query 8: $regex: patient names starting with R
+  db.patients.find(
+    { patient_name: { $regex: '^R' } },
+    { _id: 0, patient_name: 1 }
+  )
+
+Output:
+  { patient_name: 'Ravi Patil' }
+  { patient_name: 'Rahul Desai' }
+
+Query 9: Nested field: patients living in Pune
+  db.patients.find(
+    { 'contact.city': 'Pune' },
+    { _id: 0, patient_name: 1, contact: 1 }
+  )
+
+Output:
+  { patient_name: 'Ravi Patil', contact: { phone: '9876500001', city: 'Pune' } }
+  { patient_name: 'Sneha Rao', contact: { phone: '9876500004', city: 'Pune' } }
+  { patient_name: 'Neha More', contact: { phone: '9876500006', city: 'Pune' } }
+
+Query 10: sort by name with skip() and limit() (pagination)
+  db.patients.find({}, { _id: 0, patient_name: 1, department: 1 })
+    .sort({ patient_name: 1 })
+    .skip(2).limit(3)
+
+Output:
+  { patient_name: 'Neha More', department: 'Pediatrics' }
+  { patient_name: 'Priya Shah', department: 'Neurology' }
+  { patient_name: 'Rahul Desai', department: 'Neurology' }
+
+Query 11: distinct(): list of departments
+  db.patients.distinct('department')
+
+Output:
+  ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics']
+
+Query 12: Aggregation $group: patients and average age per department
+  db.patients.aggregate([
+    { $group: { _id: '$department',
+                patients: { $sum: 1 },
+                avgAge: { $avg: '$age' } } },
+    { $sort: { _id: 1 } }
+  ])
+
+Output:
+  { _id: 'Cardiology', patients: 3, avgAge: 58.333333333333336 }
+  { _id: 'Neurology', patients: 2, avgAge: 42.0 }
+  { _id: 'Orthopedics', patients: 1, avgAge: 28.0 }
+  { _id: 'Pediatrics', patients: 1, avgAge: 19.0 }
+
+Conclusion: comparison, logical, regex, nested-field, sort/skip/limit, distinct and aggregation
+operators allow patients to be retrieved, filtered and sorted in many ways.
